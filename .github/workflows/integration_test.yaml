@@ -5,10 +5,10 @@ on:
 
 jobs:
   integration-tests:
-    uses: canonical/operator-workflows/.github/workflows/integration_test.yaml@main
+    uses: canonical/operator-workflows/.github/workflows/integration_test.yaml@dependency-version-pin
     secrets: inherit
     with:
-      self-hosted-runner: true
+      self-hosted-runner: false
       self-hosted-runner-label: "edge"
       juju-channel: 3.1/stable
       provider: lxd
