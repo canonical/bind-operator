@@ -124,10 +124,12 @@ class BindService:
                 event="reload-bind",
                 timeout="10s",
                 unit=unit_name,
-            )
+            ),
+            encoding="utf-8",
         )
         (pathlib.Path(constants.SYSTEMD_SERVICES_PATH) / "dispatch-reload-bind.timer").write_text(
-            constants.SYSTEMD_SERVICE_TIMER.format(interval="1", service="dispatch-reload-bind")
+            constants.SYSTEMD_SERVICE_TIMER.format(interval="1", service="dispatch-reload-bind"),
+            encoding="utf-8",
         )
         systemd.service_enable("dispatch-reload-bind.timer")
         systemd.service_start("dispatch-reload-bind.timer")
@@ -166,7 +168,7 @@ class BindService:
             record_requirer_data: The input DNSRecordRequirerData
 
         Returns:
-            A dict of zones names as keys with the zones contents as values
+            A list of zones
         """
         zones_entries: typing.Dict[str, typing.List[RequirerEntry]] = {}
         for entry in record_requirer_data.dns_entries:
@@ -178,9 +180,62 @@ class BindService:
         for domain, entries in zones_entries.items():
             zone = Zone(domain=domain, entries=[])
             for entry in entries:
-                zone.entries.append(create_dns_entry_from_requirer_entry(entry))
+                zone.entries.add(create_dns_entry_from_requirer_entry(entry))
             zones.append(zone)
         return zones
+
+    def _dns_record_relations_data_to_zones(
+        self,
+        relation_data: typing.List[typing.Tuple[DNSRecordRequirerData, DNSRecordProviderData]],
+    ) -> list[Zone]:
+        """Return zones from all the dns_record relations data.
+
+        Args:
+            relation_data: input relation data
+
+        Returns:
+            The zones from the record_requirer_data
+        """
+        zones: typing.List[Zone] = []
+        for record_requirer_data, _ in relation_data:
+            for new_zone in self._record_requirer_data_to_zones(record_requirer_data):
+                # If the new zone is already in the list, merge with it
+                if any(zone.domain == new_zone.domain for zone in zones):
+                    for zone in zones:
+                        if zone.domain == new_zone.domain:
+                            zone.entries.update(new_zone.entries)
+                else:
+                    # If the new zone wasn't in the list, add it
+                    zones.append(new_zone)
+        return zones
+
+    def has_a_zone_changed(
+        self,
+        relation_data: typing.List[typing.Tuple[DNSRecordRequirerData, DNSRecordProviderData]],
+    ) -> bool:
+        """Check if a zone definition has changed.
+
+        Args:
+            relation_data: input relation data
+
+        Returns:
+            True if a zone has changed, False otherwise.
+        """
+        zones = self._dns_record_relations_data_to_zones(relation_data)
+        for zone in zones:
+            zonefile_content = pathlib.Path(
+                constants.DNS_CONFIG_DIR, f"db.{zone.domain}"
+            ).read_text(encoding="utf-8")
+            try:
+                metadata = self._get_zonefile_metadata(zonefile_content)
+            except (
+                exceptions.InvalidZoneFileMetadataError,
+                exceptions.EmptyZoneFileMetadataError,
+            ):
+                return True
+            if "HASH" in metadata and hash(zone) != int(metadata["HASH"]):
+                return True
+        return False
 
     def _get_conflicts(
         self, zones: typing.List[Zone]
@@ -225,7 +280,11 @@ class BindService:
         zone_files: typing.Dict[str, str] = {}
         for zone in zones:
             content = constants.ZONE_HEADER_TEMPLATE.format(
-                zone=zone.domain, serial=int(time.time())
+                zone=zone.domain,
+                # The serial is the timestamp divided by 60.
+                # We only need precision to the minute and want to avoid overflows
+                serial=int(time.time() / 60),
+                hash=hash(zone),
             )
             for entry in zone.entries:
                 content += constants.ZONE_RECORD_TEMPLATE.format(
@@ -254,34 +313,22 @@ class BindService:
             )
         return content
 
-    def handle_relation_data(
+    def update_zonefiles_and_reload(
         self,
         relation_data: typing.List[typing.Tuple[DNSRecordRequirerData, DNSRecordProviderData]],
-    ) -> DNSRecordProviderData:
-        """Handle new relation data.
+    ) -> None:
+        """Update the zonefiles from bind's config and reload bind.
 
         Args:
-            relation_data: The list of DNSRecordRequirerData from the dns_record relations
-
-        Returns:
-            A resulting DNSRecordProviderData to put in the relation databag
+            relation_data: input relation data
         """
-        # Create zones list
-        zones: typing.List[Zone] = []
-        for record_requirer_data, _ in relation_data:
-            zones.extend(self._record_requirer_data_to_zones(record_requirer_data))
-
-        # Check for conflicts
-        _, conflicting = self._get_conflicts(zones)
-        if len(conflicting) > 0:
-            return self._create_dns_record_provider_data(relation_data)
-
+        zones = self._dns_record_relations_data_to_zones(relation_data)
         # Create staging area
         with tempfile.TemporaryDirectory() as tempdir:
             # Write zone files
             zone_files: typing.Dict[str, str] = self._zones_to_files_content(zones)
-            for name, content in zone_files.items():
-                pathlib.Path(tempdir, f"db.{name}").write_text(content, encoding="utf-8")
+            for domain, content in zone_files.items():
+                pathlib.Path(tempdir, f"db.{domain}").write_text(content, encoding="utf-8")
 
             # Write the named.conf file
             pathlib.Path(tempdir, "named.conf.local").write_text(
@@ -298,10 +345,41 @@ class BindService:
         # Reload charmed-bind config
         self.reload()
 
-        # Return the provider data with the entries' status
-        return self._create_dns_record_provider_data(relation_data)
+    def _get_zonefile_metadata(self, zonefile_content: str) -> dict[str, str]:
+        """Get the metadata of a zonefile.
 
-    def _create_dns_record_provider_data(
+        Args:
+            zonefile_content: The content of the zonefile.
+
+        Returns:
+            The hash of the corresponding zonefile.
+
+        Raises:
+            InvalidZoneFileMetadataError: when the metadata of the zonefile could not be parsed.
+            EmptyZoneFileMetadataError: when the metadata of the zonefile is empty.
+        """
+        # This assumes that the file was generated with the constants.ZONE_HEADER_TEMPLATE template
+        metadata = {}
+        try:
+            lines = zonefile_content.split("\n")
+            for line in lines:
+                # We only take the $ORIGIN line into account
+                if not line.startswith("$ORIGIN"):
+                    continue
+                logger.debug("%s", line)
+                for token in line.split(";")[1].split():
+                    k, v = token.split(":")
+                    metadata[k] = v
+                logger.debug("%s", metadata)
+                break
+        except (IndexError, ValueError) as err:
+            raise exceptions.InvalidZoneFileMetadataError(err) from err
+
+        if metadata:
+            return metadata
+        raise exceptions.EmptyZoneFileMetadataError("No metadata found !")
+
+    def create_dns_record_provider_data(
         self,
         relation_data: typing.List[typing.Tuple[DNSRecordRequirerData, DNSRecordProviderData]],
     ) -> DNSRecordProviderData:
@@ -313,9 +391,7 @@ class BindService:
         Returns:
             A DNSRecordProviderData object with requests' status
         """
-        zones: typing.List[Zone] = []
-        for record_requirer_data, _ in relation_data:
-            zones.extend(self._record_requirer_data_to_zones(record_requirer_data))
+        zones = self._dns_record_relations_data_to_zones(relation_data)
         nonconflicting, conflicting = self._get_conflicts(zones)
         statuses = []
         for record_requirer_data, _ in relation_data:
