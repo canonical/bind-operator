@@ -9,7 +9,7 @@ SNAP_PACKAGES = {
 }
 DNS_CONFIG_DIR = f"/var/snap/{DNS_SNAP_NAME}/current/etc/bind"
 
-ZONE_HEADER_TEMPLATE = """$ORIGIN {zone}.
+ZONE_HEADER_TEMPLATE = """$ORIGIN {zone}.; HASH:{hash}
 $TTL 600
 @ IN SOA {zone}. mail.{zone}. ( {serial} 1d 1h 1h 10m )
 @ IN NS localhost.

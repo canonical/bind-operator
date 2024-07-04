@@ -59,7 +59,15 @@ class Zone(pydantic.BaseModel):
     """
 
     domain: str
-    entries: list[DnsEntry]
+    entries: typing.Set[DnsEntry]
+
+    def __hash__(self) -> int:
+        """Get a hash of a Zone based on its DNSEntries.
+
+        Returns:
+            A hash for the current object.
+        """
+        return hash(tuple(hash(e) for e in self.entries))
 
 
 def create_dns_entry_from_requirer_entry(requirer_entry: RequirerEntry) -> DnsEntry:
