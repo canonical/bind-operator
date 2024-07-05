@@ -41,6 +41,12 @@ async def test_lifecycle(app: ops.model.Application, ops_test: OpsTest):
     logger.info(service_status)
     assert "inactive" in service_status
 
+    # Wait a bit and retest the status.
+    # This is done to make sure that bind-reload doesn't restart the service
+    time.sleep(70)
+    logger.info(service_status)
+    assert "inactive" in service_status
+
     await tests.integration.helpers.dispatch_to_unit(ops_test, unit, "start")
     time.sleep(5)
     _, service_status, _ = await ops_test.juju(
@@ -67,6 +73,10 @@ async def test_basic_dns_config(app: ops.model.Application, ops_test: OpsTest):
     allow-update {{ none; }};
 }};
     """
+    # We need to stop the dispatch-reload-bind timer for this test
+    stop_timer_cmd = "sudo systemctl stop dispatch-reload-bind.timer"
+    await tests.integration.helpers.run_on_unit(ops_test, unit.name, stop_timer_cmd)
+
     await tests.integration.helpers.push_to_unit(
         ops_test, unit, test_zone_def, f"{constants.DNS_CONFIG_DIR}/named.conf.local"
     )
@@ -95,6 +105,10 @@ async def test_basic_dns_config(app: ops.model.Application, ops_test: OpsTest):
             ops_test, f"{app.name}/{0}", "dig @127.0.0.1 dns.test TXT +short"
         )
     ).strip() == '"this-is-a-test"'
+
+    # Restart the timer for the subsequent tests
+    start_timer_cmd = "sudo systemctl start dispatch-reload-bind.timer"
+    await tests.integration.helpers.run_on_unit(ops_test, unit.name, start_timer_cmd)
 
 
 @pytest.mark.parametrize(
@@ -226,6 +240,13 @@ async def test_dns_record_relation(
 
     await model.wait_for_idle()
 
+    # wait for the bind-reload event to happen
+    restart_cmd = f"sudo snap restart --reload {constants.DNS_SNAP_NAME}"
+    # Application actually does have units
+    unit = app.units[0]  # type: ignore
+    await tests.integration.helpers.run_on_unit(ops_test, unit.name, restart_cmd)
+    await model.wait_for_idle()
+
     # Test the status of the bind-operator instance
     # Application actually does have units
     unit = app.units[0]  # type: ignore
@@ -238,8 +259,6 @@ async def test_dns_record_relation(
             for entry in integration_data:
 
                 result = await tests.integration.helpers.dig_query(ops_test, app.name, entry)
-                await model.wait_for_idle()
-
                 assert result == str(entry.record_data), (
                     f"{entry.host_label}.{entry.domain}"
                     f" {entry.record_type} {entry.record_data}"
