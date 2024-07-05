@@ -4,6 +4,7 @@
 """File containing constants to be used in the charm."""
 
 DNS_SNAP_NAME = "charmed-bind"
+DNS_SNAP_SERVICE = "named"
 SNAP_PACKAGES = {
     DNS_SNAP_NAME: {"channel": "edge"},
 }

@@ -47,8 +47,11 @@ class InstallError(exceptions.SnapError):
 class BindService:
     """Bind service class."""
 
-    def reload(self) -> None:
+    def reload(self, force_start: bool) -> None:
         """Reload the charmed-bind service.
+
+        Args:
+            force_start: start the service even if it was inactive
 
         Raises:
             ReloadError: when encountering a SnapError
@@ -56,7 +59,9 @@ class BindService:
         try:
             cache = snap.SnapCache()
             charmed_bind = cache[constants.DNS_SNAP_NAME]
-            charmed_bind.restart(reload=True)
+            charmed_bind_service = charmed_bind.services[constants.DNS_SNAP_SERVICE]
+            if charmed_bind_service['active'] or force_start:
+                charmed_bind.restart(reload=True)
         except snap.SnapError as e:
             error_msg = (
                 f"An exception occurred when reloading {constants.DNS_SNAP_NAME}. Reason: {e}"
@@ -341,8 +346,8 @@ class BindService:
                     pathlib.Path(constants.DNS_CONFIG_DIR, file_name),
                 )
 
-        # Reload charmed-bind config
-        self.reload()
+        # Reload charmed-bind config (only if already started)
+        self.reload(force_start=False)
 
     def _get_zonefile_metadata(self, zonefile_content: str) -> dict[str, str]:
         """Get the metadata of a zonefile.
