@@ -43,11 +43,18 @@ async def app_fixture(
         yield model.applications[app_name]
         return
 
+    resources = {}
+
+    if pytestconfig.getoption("--charmed-bind-snap-file"):
+        resources.update({"charmed-bind-snap": pytestconfig.getoption("--charmed-bind-snap-file")})
+
     if charm := pytestconfig.getoption("--charm-file"):
-        application = await model.deploy(f"./{charm}", application_name=app_name)
+        application = await model.deploy(
+            f"./{charm}", application_name=app_name, resources=resources
+        )
     else:
         charm = await ops_test.build_charm(".")
-        application = await model.deploy(charm, application_name=app_name)
+        application = await model.deploy(charm, application_name=app_name, resources=resources)
 
     await model.wait_for_idle(apps=[application.name], status="active")
 

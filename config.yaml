@@ -1,0 +1,11 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+options:
+  django_debug:
+    type: boolean
+    description: "Set the backed by Django API DEBUG setting"
+    default: false
+  django_allowed_hosts:
+    type: string
+    description: "Set the backed by Django API ALLOWED_HOSTS setting"
+    default: "\"['localhost', '127.0.0.1', '0.0.0.0']\""

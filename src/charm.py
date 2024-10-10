@@ -13,6 +13,7 @@ import typing
 import ops
 from charms.bind.v0 import dns_record
 
+import actions_mixin
 import constants
 import dns_data
 import events
@@ -31,7 +32,7 @@ class PeerRelationNetworkUnavailableError(exceptions.BindCharmError):
     """Exception raised when the peer relation network is unavailable."""
 
 
-class BindCharm(ops.CharmBase):
+class BindCharm(actions_mixin.ActionsMixin, ops.CharmBase):
     """Charm the service."""
 
     def __init__(self, *args: typing.Any):
@@ -66,6 +67,21 @@ class BindCharm(ops.CharmBase):
         self.unit.open_port("tcp", 8080)  # ACL API
         self.unit.open_port("tcp", 53)  # Bind DNS
         self.unit.open_port("udp", 53)  # Bind DNS
+        actions_mixin.ActionsMixin.hooks(self)
+
+        # Try to check if the `charmed-bind-snap` resource is defined.
+        # Using this can be useful when debugging locally
+        # More information about resources:
+        # https://juju.is/docs/sdk/resources#heading--add-a-resource-to-a-charm
+        self.snap_path: str = ""
+        try:
+            self.snap_path = str(self.model.resources.fetch("charmed-bind-snap"))
+        except ops.ModelError as e:
+            self.unit.status = ops.BlockedStatus(
+                "Something went wrong when claiming resource 'charmed-bind-snap; "
+                "run `juju debug-log` for more info'"
+            )
+            logger.error(e)
 
     def _on_reload_bind(self, _: events.ReloadBindEvent) -> None:
         """Handle periodic reload bind event.
@@ -143,11 +159,18 @@ class BindCharm(ops.CharmBase):
 
     def _on_config_changed(self, _: ops.ConfigChangedEvent) -> None:
         """Handle changed configuration event."""
+        self.unit.status = ops.MaintenanceStatus("Configuring workload")
+        self.bind.configure(
+            {
+                "django-debug": "true" if self.config["django_debug"] else "false",
+                "django-allowed-hosts": self.config["django_allowed_hosts"],
+            }
+        )
 
     def _on_install(self, _: ops.InstallEvent) -> None:
         """Handle install."""
         self.unit.status = ops.MaintenanceStatus("Preparing bind")
-        self.bind.setup(self.unit.name)
+        self.bind.setup(self.unit.name, self.snap_path)
 
     def _on_start(self, _: ops.StartEvent) -> None:
         """Handle start."""
@@ -160,7 +183,7 @@ class BindCharm(ops.CharmBase):
     def _on_upgrade_charm(self, _: ops.UpgradeCharmEvent) -> None:
         """Handle upgrade-charm."""
         self.unit.status = ops.MaintenanceStatus("Upgrading dependencies")
-        self.bind.setup(self.unit.name)
+        self.bind.setup(self.unit.name, self.snap_path)
 
     def _on_leader_elected(self, _: ops.LeaderElectedEvent) -> None:
         """Handle leader-elected event."""

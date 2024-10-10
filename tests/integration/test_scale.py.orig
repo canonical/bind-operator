@@ -4,9 +4,16 @@
 
 """Integration tests."""
 
+<<<<<<< HEAD
 # Ignore too many args warning. I NEED THEM OKAY ?!
 # pylint: disable=too-many-arguments
 
+||||||| f11c69e
+=======
+# Ignore functions having too many arguments (will be removed in the future)
+# pylint: disable=too-many-positional-arguments
+
+>>>>>>> origin/main
 import asyncio
 import json
 import logging

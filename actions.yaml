@@ -1,0 +1,40 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+check-acl:
+  description: Check the existence of an ACL
+  params:
+    service-account:
+      type: string
+      description: The unique identifier of the service account.
+    zone:
+      type: string
+      description: The targeted zone.
+  required:
+    - service-account
+    - zone
+create-acl:
+  description: Create an ACL
+  params:
+    service-account:
+      type: string
+      description: The unique identifier of the service account.
+    zone:
+      type: string
+      description: The targeted zone.
+  required:
+    - service-account
+    - zone
+delete-acl:
+  description: Delete an ACL
+  params:
+    service-account:
+      type: string
+      description: The unique identifier of the service account.
+    zone:
+      type: string
+      description: The targeted zone.
+  required:
+    - service-account
+    - zone
+list-acl:
+  description: List all ACLs

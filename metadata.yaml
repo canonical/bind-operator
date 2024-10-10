@@ -8,7 +8,6 @@ issues: https://github.com/canonical/bind-operator/issues
 maintainers: 
   - https://launchpad.net/~canonical-is-devops
 source: https://github.com/canonical/bind-operator
-
 description: |
   A [Juju](https://juju.is/) [charm](https://juju.is/docs/olm/charmed-operators)
   deploying and managing a DNS server Integrator on Kubernetes and bare metal.
@@ -32,3 +31,8 @@ provides:
 peers:
   bind-peers:
     interface: bind-instance
+resources:
+  charmed-bind-snap:
+    type: file
+    filename: charmed-bind.snap
+    description: charmed-bind snap file for debugging purposes
