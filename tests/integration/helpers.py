@@ -9,7 +9,11 @@
 # Ignore functions having too many arguments (will be removed in the future)
 # pylint: disable=too-many-positional-arguments
 
+# Ignore too many args warning. I NEED THEM OKAY ?!
+# pylint: disable=too-many-arguments
+
 import json
+import logging
 import pathlib
 import random
 import string
@@ -21,6 +25,8 @@ from pytest_operator.plugin import OpsTest
 
 import constants
 import models
+
+logger = logging.getLogger(__name__)
 
 
 class ExecutionError(Exception):
@@ -83,8 +89,8 @@ async def run_on_unit(ops_test: OpsTest, unit_name: str, command: str) -> str:
     return stdout
 
 
-# pylint: disable=too-many-arguments
 async def push_to_unit(
+    *,
     ops_test: OpsTest,
     unit: ops.model.Unit,
     source: str,
@@ -200,10 +206,10 @@ async def change_anycharm_relation(
         dns_entries: List of DNS entries for any-charm
     """
     await push_to_unit(
-        ops_test,
-        anyapp_unit,
-        json.dumps([e.model_dump(mode="json") for e in dns_entries]),
-        "/srv/dns_entries.json",
+        ops_test=ops_test,
+        unit=anyapp_unit,
+        source=json.dumps([e.model_dump(mode="json") for e in dns_entries]),
+        destination="/srv/dns_entries.json",
     )
 
     # fire reload-data event
@@ -319,3 +325,22 @@ async def force_reload_bind(ops_test: OpsTest, unit: ops.model.Unit):
     """
     restart_cmd = f"sudo snap restart --reload {constants.DNS_SNAP_NAME}"
     await run_on_unit(ops_test, unit.name, restart_cmd)
+
+
+async def get_unit_ips(ops_test: OpsTest, unit: ops.model.Unit) -> list[str]:
+    """Retrieve unit ip addresses.
+
+    Args:
+        ops_test: The ops test framework instance
+        unit: the bind unit to force reload
+
+    Returns:
+        list of units ip addresses.
+    """
+    _, status, _ = await ops_test.juju("status", "--format", "json")
+    status = json.loads(status)
+    units = status["applications"][unit.name.split("/")[0]]["units"]
+    ip_list = []
+    for key in sorted(units.keys(), key=lambda n: int(n.split("/")[-1])):
+        ip_list.append(units[key]["public-address"])
+    return ip_list

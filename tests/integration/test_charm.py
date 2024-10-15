@@ -9,6 +9,8 @@ import time
 
 import ops
 import pytest
+import requests
+from juju.action import Action
 from pytest_operator.plugin import Model, OpsTest
 
 import constants
@@ -16,6 +18,105 @@ import models
 import tests.integration.helpers
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.mark.asyncio
+@pytest.mark.abort_on_fail
+async def test_admin_reachable(app: ops.model.Application, ops_test: OpsTest):
+    """
+    arrange: build and deploy the charm.
+    act: nothing.
+    assert: that the admin of the API is reachable.
+    """
+    # Application actually does have units
+    unit = app.units[0]  # type: ignore
+
+    # Mypy has difficulty with ActiveStatus
+    assert unit.workload_status == ops.model.ActiveStatus.name  # type: ignore
+
+    # Mypy doesn't know that Application has set_config()
+    await app.set_config({"django_allowed_hosts": ""})  # type: ignore
+    time.sleep(10)
+
+    # Test that the admin is not reachable
+    for _, unit_ip in enumerate(await tests.integration.helpers.get_unit_ips(ops_test, unit)):
+        url = f"http://{unit_ip}:8080/admin/"
+        try:
+            response = requests.head(url, timeout=5)
+            response.raise_for_status()
+            assert False, f"Asset unexpectedly accessible at {url} after config change"
+            # Consider using assert False here instead of logger.error
+        except requests.exceptions.HTTPError:
+            logger.info("Asset inaccessible at %s as expected after config change", url)
+        except requests.RequestException as e:
+            logger.error("Unexpected error after config change: %s", e)
+
+    # Mypy doesn't know that Application has set_config()
+    await app.set_config({"django_allowed_hosts": "*"})  # type: ignore
+    time.sleep(10)
+
+    # Test that the admin is reachable
+    for _, unit_ip in enumerate(await tests.integration.helpers.get_unit_ips(ops_test, unit)):
+        url = f"http://{unit_ip}:8080/admin/"
+        response = requests.head(url, timeout=5)
+        response.raise_for_status()
+        logger.info("File found at %s", url)
+
+
+@pytest.mark.asyncio
+@pytest.mark.abort_on_fail
+async def test_acl_actions(app: ops.model.Application):
+    """
+    arrange: build and deploy the charm.
+    act: nothing.
+    assert: that the acl actions do the right thing.
+    """
+    # Application actually does have units
+    unit = app.units[0]  # type: ignore
+
+    # Mypy has difficulty with ActiveStatus
+    assert unit.workload_status == ops.model.ActiveStatus.name  # type: ignore
+
+    zone = "test-zone"
+
+    action_create_acl: Action = await unit.run_action(  # type: ignore
+        "create-acl",
+        **{"service-account": "test-service-account", "zone": zone},
+    )
+    await action_create_acl.wait()
+    assert action_create_acl.status == "completed"
+    assert "ACL created successfully" in action_create_acl.results["result"]
+
+    action_check_acl: Action = await unit.run_action(  # type: ignore
+        "check-acl",
+        **{"service-account": "test-service-account", "zone": zone},
+    )
+    await action_check_acl.wait()
+    assert action_check_acl.status == "completed"
+    assert "ACL exists" in action_check_acl.results["result"]
+
+    action_list_acl: Action = await unit.run_action(  # type: ignore
+        "list-acl",
+    )
+    await action_list_acl.wait()
+    assert action_list_acl.status == "completed"
+    assert f"test-service-account - {zone}" in action_list_acl.results["result"]
+
+    action_delete_acl: Action = await unit.run_action(  # type: ignore
+        "delete-acl",
+        **{"service-account": "test-service-account", "zone": zone},
+    )
+    await action_delete_acl.wait()
+    assert action_delete_acl.status == "completed"
+    assert "ACL deleted successfully" in action_delete_acl.results["result"]
+
+    action_check_acl: Action = await unit.run_action(  # type: ignore
+        "check-acl",
+        **{"service-account": "test-service-account", "zone": zone},
+    )
+    await action_check_acl.wait()
+    assert action_check_acl.status == "completed"
+    assert "ACL does not exist" in action_check_acl.results["result"]
 
 
 @pytest.mark.asyncio
@@ -86,7 +187,10 @@ async def test_basic_dns_config(app: ops.model.Application, ops_test: OpsTest):
     await tests.integration.helpers.run_on_unit(ops_test, unit.name, stop_timer_cmd)
 
     await tests.integration.helpers.push_to_unit(
-        ops_test, unit, test_zone_def, f"{constants.DNS_CONFIG_DIR}/named.conf.local"
+        ops_test=ops_test,
+        unit=unit,
+        source=test_zone_def,
+        destination=f"{constants.DNS_CONFIG_DIR}/named.conf.local",
     )
 
     test_zone = """$TTL    604800
@@ -102,7 +206,10 @@ async def test_basic_dns_config(app: ops.model.Application, ops_test: OpsTest):
 @       IN      TXT     "this-is-a-test"
     """
     await tests.integration.helpers.push_to_unit(
-        ops_test, unit, test_zone, f"{constants.DNS_CONFIG_DIR}/db.dns.test"
+        ops_test=ops_test,
+        unit=unit,
+        source=test_zone,
+        destination=f"{constants.DNS_CONFIG_DIR}/db.dns.test",
     )
 
     restart_cmd = f"sudo snap restart --reload {constants.DNS_SNAP_NAME}"
