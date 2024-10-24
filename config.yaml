@@ -1,0 +1,13 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+options:
+  django_debug:
+    type: boolean
+    description: "Whether Django debug mode is enabled."
+    default: false
+  django_allowed_hosts:
+    type: string
+    description: A comma-separated list of host/domain names that the Django API
+      can serve. This configuration will set the DJANGO_ALLOWED_HOSTS environment
+      variable with its content being a JSON encoded list.
+    default: "localhost, 127.0.0.1, 0.0.0.0"

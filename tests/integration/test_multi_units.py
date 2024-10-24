@@ -6,7 +6,7 @@
 
 import logging
 
-import ops
+import juju.application
 import pytest
 from pytest_operator.plugin import Model, OpsTest
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @pytest.mark.asyncio
 @pytest.mark.abort_on_fail
 async def test_multi_units(
-    app: ops.model.Application,
+    app: juju.application.Application,
     ops_test: OpsTest,
     model: Model,
 ):
@@ -55,8 +55,7 @@ async def test_multi_units(
 
     # Start by testing that everything is fine
     assert await tests.integration.helpers.check_if_active_unit_exists(app, ops_test)
-    # Application actually does have units
-    for unit in app.units:  # type: ignore
+    for unit in app.units:
         await tests.integration.helpers.force_reload_bind(ops_test, unit)
         await model.wait_for_idle()
         assert (
@@ -76,8 +75,7 @@ async def test_multi_units(
     await ops_test.juju(*(add_unit_cmd.split(" ")))
     await model.wait_for_idle()
     assert await tests.integration.helpers.check_if_active_unit_exists(app, ops_test)
-    # Application actually does have units
-    for unit in app.units:  # type: ignore
+    for unit in app.units:
         await tests.integration.helpers.force_reload_bind(ops_test, unit)
         await model.wait_for_idle()
         assert (
@@ -109,8 +107,7 @@ async def test_multi_units(
         ],
     )
     await model.wait_for_idle()
-    # Application actually does have units
-    for unit in app.units:  # type: ignore
+    for unit in app.units:
         await tests.integration.helpers.force_reload_bind(ops_test, unit)
         await model.wait_for_idle()
         assert (
@@ -133,8 +130,7 @@ async def test_multi_units(
     await ops_test.juju(*(remove_unit_cmd.split(" ")))
     await model.wait_for_idle()
     assert await tests.integration.helpers.check_if_active_unit_exists(app, ops_test)
-    # Application actually does have units
-    for unit in app.units:  # type: ignore
+    for unit in app.units:
         await tests.integration.helpers.force_reload_bind(ops_test, unit)
         await model.wait_for_idle()
         assert (

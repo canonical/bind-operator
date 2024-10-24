@@ -4,15 +4,15 @@
 
 """Integration tests."""
 
-# Ignore functions having too many arguments (will be removed in the future)
-# pylint: disable=too-many-positional-arguments
+# Ignore too many args warning. I NEED THEM OKAY ?!
+# pylint: disable=too-many-arguments
 
 import asyncio
 import json
 import logging
 import time
 
-import ops
+import juju.application
 import pytest
 from pytest_operator.plugin import Model, OpsTest
 
@@ -22,8 +22,9 @@ import tests.integration.helpers
 logger = logging.getLogger(__name__)
 
 
-async def deploy_any_charm(  # pylint: disable=too-many-arguments
-    app: ops.model.Application,
+async def deploy_any_charm(
+    *,
+    app: juju.application.Application,
     ops_test: OpsTest,
     model: Model,
     any_app_number: int,
@@ -61,7 +62,7 @@ async def deploy_any_charm(  # pylint: disable=too-many-arguments
 @pytest.mark.abort_on_fail
 @pytest.mark.skip(reason="Scaling test")
 async def test_lots_of_applications(
-    app: ops.model.Application,
+    app: juju.application.Application,
     ops_test: OpsTest,
     model: Model,
 ):
@@ -109,12 +110,12 @@ async def test_lots_of_applications(
         await asyncio.gather(
             *[
                 deploy_any_charm(
-                    app,
-                    ops_test,
-                    model,
-                    i * batch_number + x,
-                    machines,
-                    [
+                    app=app,
+                    ops_test=ops_test,
+                    model=model,
+                    any_app_number=i * batch_number + x,
+                    machines=machines,
+                    entries=[
                         models.DnsEntry(
                             domain="dns.test",
                             host_label=f"admin{i * batch_number + x}",
@@ -138,7 +139,7 @@ async def test_lots_of_applications(
 @pytest.mark.abort_on_fail
 @pytest.mark.skip(reason="Scaling test")
 async def test_lots_of_record_requests(
-    app: ops.model.Application,
+    app: juju.application.Application,
     ops_test: OpsTest,
     model: Model,
 ):
@@ -167,10 +168,10 @@ async def test_lots_of_record_requests(
             )
 
         await deploy_any_charm(
-            app,
-            ops_test,
-            model,
-            any_app_number,
+            app=app,
+            ops_test=ops_test,
+            model=model,
+            any_app_number=any_app_number,
             machines=None,
             entries=entries,
         )

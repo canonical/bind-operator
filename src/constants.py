@@ -8,7 +8,7 @@ DNS_SNAP_SERVICE = "named"
 SNAP_PACKAGES = {
     DNS_SNAP_NAME: {"channel": "edge"},
 }
-DNS_CONFIG_DIR = f"/var/snap/{DNS_SNAP_NAME}/current/etc/bind"
+DNS_CONFIG_DIR = f"/var/snap/{DNS_SNAP_NAME}/common/bind"
 
 ZONE_SERVICE_NAME = "service.test"
 

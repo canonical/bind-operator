@@ -11,6 +11,7 @@ def pytest_addoption(parser):
         parser: Pytest parser.
     """
     parser.addoption("--charm-file", action="store", default=None)
+    parser.addoption("--charmed-bind-snap-file", action="store", default=None)
     parser.addoption(
         "--use-existing",
         action="store_true",

@@ -7,6 +7,7 @@ import logging
 import os
 import pathlib
 import shutil
+import subprocess  # nosec
 import tempfile
 import time
 
@@ -42,6 +43,10 @@ class StopError(SnapError):
 
 class InstallError(SnapError):
     """Exception raised when unable to install dependencies for the service."""
+
+
+class ConfigureError(SnapError):
+    """Exception raised when unable to configure the service."""
 
 
 class BindService:
@@ -104,15 +109,17 @@ class BindService:
             logger.error(error_msg)
             raise StopError(error_msg) from e
 
-    def setup(self, unit_name: str) -> None:
+    def setup(self, unit_name: str, snap_path: str) -> None:
         """Prepare the machine.
 
         Args:
             unit_name: The name of the current unit
+            snap_path: The path to the snap to install, can be blank.
         """
         self._install_snap_package(
             snap_name=constants.DNS_SNAP_NAME,
             snap_channel=constants.SNAP_PACKAGES[constants.DNS_SNAP_NAME]["channel"],
+            snap_path=snap_path,
         )
         self._install_bind_reload_service(unit_name)
         # We need to put the service zone in place so we call
@@ -227,25 +234,38 @@ class BindService:
         logger.debug("Update and reload duration (ms): %s", (time.time_ns() - start_time) / 1e6)
 
     def _install_snap_package(
-        self, snap_name: str, snap_channel: str, refresh: bool = False
+        self, snap_name: str, snap_channel: str, snap_path: str, refresh: bool = False
     ) -> None:
         """Installs snap package.
 
         Args:
             snap_name: the snap package to install
             snap_channel: the snap package channel
+            snap_path: The path to the snap to install, can be blank.
             refresh: whether to refresh the snap if it's already present.
 
         Raises:
             InstallError: when encountering a SnapError or a SnapNotFoundError
         """
         try:
-            snap_cache = snap.SnapCache()
-            snap_package = snap_cache[snap_name]
+            # If a snap resource was not given, install the snap as published on snapcraft
+            if snap_path == "":
+                snap_cache = snap.SnapCache()
+                snap_package = snap_cache[snap_name]
 
-            if not snap_package.present or refresh:
-                snap_package.ensure(snap.SnapState.Latest, channel=snap_channel)
-
+                if not snap_package.present or refresh:
+                    snap_package.ensure(snap.SnapState.Latest, channel=snap_channel)
+            elif pathlib.Path(snap_path).is_file():
+                # Installing the charm via subprocess.
+                # Calling subprocess here is not a security issue.
+                subprocess.check_output(
+                    ["sudo", "snap", "install", snap_path, "--dangerous"]
+                )  # nosec
+            else:
+                logger.warning(
+                    "Custom snap workload path defined but no file found at this location: %s",
+                    snap_path,
+                )
         except (snap.SnapError, snap.SnapNotFoundError) as e:
             error_msg = f"An exception occurred when installing {snap_name}. Reason: {e}"
             logger.error(error_msg)
@@ -330,3 +350,43 @@ class BindService:
         if not ips:
             return ""
         return f"{';'.join([str(ip) for ip in ips])};"
+
+    def configure(self, config: dict[str, str]) -> None:
+        """Configure the charmed-bind service.
+
+        Args:
+            config: dict of configuration values
+
+        Raises:
+            ConfigureError: when encountering a SnapError
+        """
+        try:
+            cache = snap.SnapCache()
+            charmed_bind = cache[constants.DNS_SNAP_NAME]
+            charmed_bind.set(config)
+        except snap.SnapError as e:
+            error_msg = (
+                f"An exception occurred when configuring {constants.DNS_SNAP_NAME}. Reason: {e}"
+            )
+            logger.error(error_msg)
+            raise ConfigureError(error_msg) from e
+
+    def command(self, cmd: str) -> str:
+        """Run manage command of the charmed-bind service.
+
+        Args:
+            cmd: command to execute by django's manage script
+
+        Returns:
+            The resulting output of the command's execution
+        """
+        try:
+            # We ignore security issues with this subprocess call
+            # as it can only be done from the operator of the charm
+            return subprocess.check_output(
+                ["sudo", "snap", "run", "charmed-bind.manage", cmd]
+            ).decode(  # nosec
+                "utf-8"
+            )
+        except subprocess.SubprocessError as e:
+            return f"Error: {e}"
