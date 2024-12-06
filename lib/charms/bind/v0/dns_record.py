@@ -67,7 +67,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 PYDEPS = ["pydantic>=2"]
 
@@ -84,10 +84,8 @@ from pydantic import (
     Field,
     IPvAnyAddress,
     PlainValidator,
-    SecretStr,
     ValidationError,
     ValidationInfo,
-    model_validator,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,7 +98,6 @@ class Status(str, Enum):
 
     Attributes:
         APPROVED: approved
-        INVALID_CREDENTIALS: invalid_credentials
         PERMISSION_DENIED: permission_denied
         CONFLICT: conflict
         INVALID_DATA: invalid_data
@@ -110,7 +107,6 @@ class Status(str, Enum):
     """
 
     APPROVED = "approved"
-    INVALID_CREDENTIALS = "invalid_credentials"
     PERMISSION_DENIED = "permission_denied"
     CONFLICT = "conflict"
     INVALID_DATA = "invalid_data"
@@ -276,108 +272,30 @@ class DNSRecordRequirerData(BaseModel):
     """List of domains for the provider to manage.
 
     Attributes:
-        service_account: service account.
-        service_account_secret_id: the secret ID containing the service account.
         dns_entries: list of entries to manage.
     """
 
-    service_account: Optional[SecretStr] = Field(default=None, exclude=True)
-    service_account_secret_id: Optional[str] = Field(default=None)
     dns_entries: List[Annotated[RequirerEntry, PlainValidator(RequirerEntry.validate_dns_entry)]]
 
-    @model_validator(mode="before")
-    @classmethod
-    def check_service_account_or_service_account_secret_id(cls, values: Dict) -> Dict:
-        """Check if service_account or service_account_secret_id is defined.
-
-        Args:
-            values: The values to validate
-
-        Returns:
-            values: The validated values
-
-        Raises:
-            ValueError: When neither service_account nor service_account_secret_id is defined
-        """
-        if (values.get("service_account") is None) and (
-            values.get("service_account_secret_id") is None
-        ):
-            raise ValueError("either service_account or service_account_secret_id is required")
-        return values
-
-    def set_service_account_secret_id(self, model: ops.Model, relation: ops.Relation) -> None:
-        """Store the service account as a Juju secret.
-
-        Args:
-            model: the Juju model
-            relation: relation to grant access to the secrets to.
-        """
-        # password is always defined since pydantic guarantees it
-        password = cast(SecretStr, self.service_account)
-        # pylint doesn't like get_secret_value
-        secret_value = password.get_secret_value()  # pylint: disable=no-member
-        try:
-            secret = model.get_secret(label="service-account")
-            secret.set_content({"service-account-password": secret_value})
-            # secret.id is not None at this point
-            self.service_account_secret_id = cast(str, secret.id)
-        except ops.SecretNotFoundError:
-            secret = relation.app.add_secret(
-                {"service-account-password": secret_value}, label="service-account"
-            )
-            secret.grant(relation)
-            self.service_account_secret_id = cast(str, secret.id)
-
-    @classmethod
-    def get_service_account(
-        cls, model: ops.Model, service_account_secret_id: Optional[str]
-    ) -> Optional[SecretStr]:
-        """Retrieve the password corresponding to the password_id.
-
-        Args:
-            model: the Juju model.
-            service_account_secret_id: the secret ID for the service account.
-
-        Returns:
-            the plain password or None if not found.
-        """
-        if not service_account_secret_id:
-            return None
-        try:
-            secret = model.get_secret(id=service_account_secret_id)
-            password = secret.get_content().get("service-account-password")
-            if not password:
-                return None
-            return SecretStr(password)
-        except ops.SecretNotFoundError:
-            return None
-
-    def to_relation_data(self, model: ops.Model, relation: ops.Relation) -> Dict[str, str]:
+    def to_relation_data(self) -> Dict[str, str]:
         """Convert an instance of DNSRecordRequirerData to the relation representation.
-
-        Args:
-            model: the Juju model.
-            relation: relation to grant access to the secrets to.
 
         Returns:
             Dict containing the representation.
         """
-        self.set_service_account_secret_id(model, relation)
         dumped_model = self.model_dump(exclude_unset=True)
         dumped_data = {
-            "service_account_secret_id": dumped_model["service_account_secret_id"],
             "dns_entries": json.dumps(dumped_model["dns_entries"], default=str),
         }
         return dumped_data
 
     @classmethod
     def from_relation(
-        cls, model: ops.Model, relation: ops.Relation
+        cls, relation: ops.Relation
     ) -> Tuple["DNSRecordRequirerData", "DNSRecordProviderData"]:
         """Get a Tuple of DNSRecordRequirerData and DNSRecordProviderData from the relation data.
 
         Args:
-            model: the Juju model.
             relation: the relation.
 
         Returns:
@@ -389,14 +307,6 @@ class DNSRecordRequirerData(BaseModel):
         try:
             app = cast(ops.Application, relation.app)
             relation_data = relation.data[app]
-            service_account_secret_id = (
-                (relation_data["service_account_secret_id"])
-                if "service_account_secret_id" in relation_data
-                else None
-            )
-            service_account = DNSRecordRequirerData.get_service_account(
-                model, service_account_secret_id
-            )
             dns_entries = (
                 json.loads(relation_data["dns_entries"]) if "dns_entries" in relation_data else []
             )
@@ -407,16 +317,8 @@ class DNSRecordRequirerData(BaseModel):
                     if "uuid" not in dns_entry:
                         logger.warning("Received DNS entry without an UUID")
                         continue
-                    if service_account is None:
-                        provider_data = DNSProviderData(
-                            uuid=dns_entry["uuid"],
-                            status=Status.INVALID_CREDENTIALS,
-                            description="Missing credentials",
-                        )
-                        invalid_entries.append(provider_data)
-                    else:
-                        validated_entry = RequirerEntry.model_validate(dns_entry)
-                        valid_entries.append(validated_entry)
+                    validated_entry = RequirerEntry.model_validate(dns_entry)
+                    valid_entries.append(validated_entry)
                 except ValidationError as ex:
                     provider_data = DNSProviderData(
                         uuid=dns_entry["uuid"],
@@ -426,8 +328,6 @@ class DNSRecordRequirerData(BaseModel):
                     invalid_entries.append(provider_data)
             return (
                 DNSRecordRequirerData(
-                    service_account=service_account,
-                    service_account_secret_id=service_account_secret_id,
                     dns_entries=valid_entries,
                 ),
                 DNSRecordProviderData(dns_entries=invalid_entries),
@@ -464,7 +364,6 @@ class DNSRecordRequestReceived(ops.RelationEvent):
 
     Attributes:
         dns_record_requirer_relation_data: the DNS requirer relation data.
-        service_account: service account.
         dns_entries: list of requested entries.
         processed_entries: list of processed entries from the original request.
     """
@@ -474,12 +373,7 @@ class DNSRecordRequestReceived(ops.RelationEvent):
         self,
     ) -> Tuple[DNSRecordRequirerData, DNSRecordProviderData]:
         """Get the requirer data and corresponding provider data the relation data."""
-        return DNSRecordRequirerData.from_relation(self.framework.model, self.relation)
-
-    @property
-    def service_account(self) -> str:
-        """Fetch the service account from the relation."""
-        return cast(str, self.dns_record_requirer_relation_data[0].service_account)
+        return DNSRecordRequirerData.from_relation(self.relation)
 
     @property
     def dns_entries(self) -> List[RequirerEntry]:
@@ -585,7 +479,7 @@ class DNSRecordRequires(ops.Object):
             relation: the relation for which to update the data.
             dns_record_requirer_data: DNSRecordRequirerData wrapping the data to be updated.
         """
-        relation_data = dns_record_requirer_data.to_relation_data(self.model, relation)
+        relation_data = dns_record_requirer_data.to_relation_data()
         relation.data[self.charm.model.app].update(relation_data)
 
 
@@ -633,7 +527,7 @@ class DNSRecordProvides(ops.Object):
         relations_data: List[Tuple[DNSRecordRequirerData, DNSRecordProviderData]] = []
         for relation in self.model.relations[self.relation_name]:
             try:
-                data = self._get_remote_relation_data(self.model, relation)
+                data = self._get_remote_relation_data(relation)
             except ValueError:
                 # This can happen if the relation is empty
                 logger.debug("Incorrect relation data for %s", relation.id)
@@ -646,18 +540,17 @@ class DNSRecordProvides(ops.Object):
         return relations_data
 
     def _get_remote_relation_data(
-        self, model: ops.Model, relation: ops.Relation
+        self, relation: ops.Relation
     ) -> Tuple[DNSRecordRequirerData, DNSRecordProviderData]:
         """Retrieve the remote relation data.
 
         Args:
-            model: the Juju model.
             relation: the relation to retrieve the data from.
 
         Returns:
             the relation data and the processed entries for it.
         """
-        return DNSRecordRequirerData.from_relation(model, relation)
+        return DNSRecordRequirerData.from_relation(relation)
 
     def _is_remote_relation_data_valid(self, relation: ops.Relation) -> bool:
         """Validate the relation data.
@@ -669,7 +562,7 @@ class DNSRecordProvides(ops.Object):
             true: if the relation data is valid.
         """
         try:
-            _ = self._get_remote_relation_data(self.model, relation)
+            _ = self._get_remote_relation_data(relation)
             return True
         except ValueError as ex:
             logger.warning("Error validating the relation data %s", ex)
