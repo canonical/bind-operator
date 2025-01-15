@@ -19,4 +19,4 @@ class RecordRequest(models.Model):
     last_modified_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.domain} - {self.host_label}"
+        return f"{self.host_label} {self.domain} {self.ttl} {self.record_type} {self.record_data}"
