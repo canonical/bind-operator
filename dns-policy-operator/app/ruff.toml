@@ -1,0 +1,60 @@
+# Exclude directories
+exclude = [
+  ".git",
+  "__pycache__",
+  ".tox",
+  "build",
+  ".venv",
+  "*.egg_info",
+  "venv",
+  "*.pyc",
+  "migrations",
+]
+
+# Line length and indentation
+line-length = 99
+indent-width = 4
+
+# Target Python version
+target-version = "py38"
+
+[lint]
+
+extend-ignore = [
+    "D203",  # 1 blank line required between top-level functions
+    "D204",  # 1 blank line required between class definitions
+    "D213",  # Missing blank line between function argument and docstring
+    "D215",  # Docstring should start with a capital letter
+    "D400",  # First line should be a short description
+    "D404",  # First line should not exceed 79 characters
+    "D406",  # Description should be properly indented
+    "D407",  # Function or method should have a docstring
+    "D408",  # Docstring should be properly formatted
+    "D409",  # Docstring should not duplicate the function name
+    "D413",  # No blank lines allowed between function and docstring
+    "D104",  # Missing docstring in public package
+]
+ignore = [
+    "E501",  # Line length
+    "D107",  # Missing docstring in __init__
+]
+select = [
+    "E",  # Pycodestyle errors
+    "W",  # Pycodestyle warnings
+    "F",  # Pyflakes errors
+    "C",  # McCabe complexity
+    "N",  # NumPy style guide
+    "D",  # Docstring checks
+    "I001",  # Import order
+]
+
+# Formatting options
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# McCabe complexity
+[lint.mccabe]
+max-complexity = 10
