@@ -1,12 +1,20 @@
-from django.core.management.base import BaseCommand
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+"""Create record request command."""
+
 from django.contrib.auth.models import User
-import uuid
+from django.core.management.base import BaseCommand
+
 from policy.models import RecordRequest
 
+
 class Command(BaseCommand):
+    """Create Record Request command."""
     help = 'Create a new record request'
 
     def add_arguments(self, parser):
+        """Define CLI arguments."""
         parser.add_argument('host_label', type=str, help='Host label')
         parser.add_argument('domain', type=str, help='Domain name')
         parser.add_argument('ttl', type=int, help='TTL')
@@ -18,6 +26,7 @@ class Command(BaseCommand):
         parser.add_argument('--approver', type=str, help='Approver username', nargs='?', default=None)
 
     def handle(self, *args, **options):
+        """Handle CLI invocation."""
         domain = options['domain']
         host_label = options['host_label']
         ttl = options['ttl']

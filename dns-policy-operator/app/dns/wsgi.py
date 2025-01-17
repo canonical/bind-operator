@@ -1,5 +1,4 @@
-"""
-WSGI config for dns project.
+"""WSGI config for dns project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

@@ -1,5 +1,4 @@
-"""
-ASGI config for dns project.
+"""ASGI config for dns project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

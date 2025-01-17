@@ -1,4 +1,10 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+"""Define urls."""
+
 from django.urls import path
+
 from . import views
 
 urlpatterns = [

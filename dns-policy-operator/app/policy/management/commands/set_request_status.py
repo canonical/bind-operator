@@ -1,15 +1,25 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+"""Set record request status command."""
+
 from django.core.management.base import BaseCommand
+
 from policy.models import RecordRequest
 
+
 class Command(BaseCommand):
+    """Set record request status command."""
     help = 'Set the status of a request'
 
     def add_arguments(self, parser):
+        """Define arguments."""
         parser.add_argument('request_id', type=str, help='ID of the request')
         parser.add_argument('status', type=str, help='New status of the request')
         parser.add_argument('--reason', type=str, help='Reason for the status change', default=None)
 
     def handle(self, *args, **options):
+        """Handle CLI invocation."""
         request_id = options['request_id']
         status = options['status']
         reason = options['reason']
