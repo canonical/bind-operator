@@ -20,7 +20,7 @@ class Command(BaseCommand):
         parser.add_argument('ttl', type=int, help='TTL')
         parser.add_argument('record_type', type=str, help='Record type')
         parser.add_argument('record_data', type=str, help='Record data')
-        parser.add_argument('--requirer_id', type=str, help='Requirer ID')
+        parser.add_argument('--requirer_id', type=str, help='Requirer ID', nargs='?', default=None)
         parser.add_argument('--status', type=str, help='Status', nargs='?', default="pending")
         parser.add_argument('--status_reason', type=str, help='Status reason', nargs='?', default=None)
         parser.add_argument('--approver', type=str, help='Approver username', nargs='?', default=None)
