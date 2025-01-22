@@ -4,11 +4,13 @@
 """Define urls."""
 
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import gui_views
 
 urlpatterns = [
-    path('pending/', gui_views.list_pending_with_action, name='list_pending_with_action'),
+    path('', RedirectView.as_view(url='pending/')),
+    path('pending/', gui_views.list_pending_with_actions, name='list_pending_with_actions'),
     path('all/', gui_views.list_all, name='list_all'),
     path('approved/', gui_views.list_approved, name='list_approved'),
     path('denied/', gui_views.list_denied, name='list_denied'),

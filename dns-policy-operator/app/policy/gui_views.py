@@ -10,10 +10,10 @@ from .models import RecordRequest
 
 
 @staff_member_required
-def list_pending_with_action(request):
+def list_pending_with_actions(request):
     """Define list requests view."""
     record_requests = RecordRequest.objects.filter(status='pending')
-    return render(request, 'list_pending_with_action.html', {'record_requests': record_requests})
+    return render(request, 'list_record_requests_with_actions.html', {'record_requests': record_requests})
 
 
 @staff_member_required
@@ -44,7 +44,7 @@ def approve_request(request, pk):
     record_request.status = 'approved'
     record_request.approver = request.user
     record_request.save()
-    return redirect('list_pending_with_action')
+    return redirect('list_pending_with_actions')
 
 
 @staff_member_required
@@ -53,4 +53,4 @@ def deny_request(request, pk):
     record_request = RecordRequest.objects.get(pk=pk)
     record_request.status = 'denied'
     record_request.save()
-    return redirect('list_pending_with_action')
+    return redirect('list_pending_with_actions')

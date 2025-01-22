@@ -18,10 +18,11 @@ class RecordRequest(models.Model):
     ttl = models.IntegerField(null=True)
     record_type = models.CharField(max_length=10)
     record_data = models.CharField(max_length=255)
+    active = models.BooleanField(default=False)
     requirer_id = models.CharField(max_length=255, null=True)
     status = models.CharField(max_length=50)
     status_reason = models.CharField(max_length=255, null=True)
-    approver = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    reviewer = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(default=timezone.now)
     last_modified_at = models.DateTimeField(default=timezone.now)
 

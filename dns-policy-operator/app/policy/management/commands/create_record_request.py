@@ -23,7 +23,7 @@ class Command(BaseCommand):
         parser.add_argument('--requirer_id', type=str, help='Requirer ID', nargs='?', default=None)
         parser.add_argument('--status', type=str, help='Status', nargs='?', default="pending")
         parser.add_argument('--status_reason', type=str, help='Status reason', nargs='?', default=None)
-        parser.add_argument('--approver', type=str, help='Approver username', nargs='?', default=None)
+        parser.add_argument('--reviewer', type=str, help='Reviewer username', nargs='?', default=None)
 
     def handle(self, *args, **options):
         """Handle CLI invocation."""
@@ -35,16 +35,16 @@ class Command(BaseCommand):
         requirer_id = options['requirer_id']
         status = options['status']
         status_reason = options['status_reason']
-        approver_username = options['approver']
+        reviewer_username = options['reviewer']
 
-        if approver_username:
+        if reviewer_username:
             try:
-                approver = User.objects.get(username=approver_username)
+                reviewer = User.objects.get(username=reviewer_username)
             except User.DoesNotExist:
-                self.stdout.write(self.style.ERROR(f'Approver with username "{approver_username}" does not exist'))
+                self.stdout.write(self.style.ERROR(f'Reviewer with username "{reviewer_username}" does not exist'))
                 return
         else:
-            approver = None
+            reviewer = None
 
         record_request = RecordRequest(
             domain=domain,
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             requirer_id=requirer_id,
             status=status,
             status_reason=status_reason,
-            approver=approver
+            reviewer=reviewer
         )
         record_request.save()
 
