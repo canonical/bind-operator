@@ -44,7 +44,10 @@ class Migration(migrations.Migration):
                 (
                     "uuid",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("domain", models.CharField(max_length=255)),
@@ -56,7 +59,10 @@ class Migration(migrations.Migration):
                 ("status", models.CharField(max_length=50)),
                 ("status_reason", models.CharField(max_length=255, null=True)),
                 ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
-                ("last_modified_at", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "last_modified_at",
+                    models.DateTimeField(default=django.utils.timezone.now),
+                ),
                 (
                     "reviewer",
                     models.ForeignKey(

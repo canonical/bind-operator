@@ -9,23 +9,24 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/stable/ref/settings/
 """
 
+import json
 import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-$hwm7%awyc26^b$=_-@_5o33ec71p7#rtq3ny*tsxu8!j&2^vr"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "") == "true"
 
-ALLOWED_HOSTS = []
+try:
+    env_allowed_hosts = json.loads(os.getenv("DJANGO_ALLOWED_HOSTS", "[]"))
+except json.decoder.JSONDecodeError:
+    env_allowed_hosts = []
+ALLOWED_HOSTS = env_allowed_hosts
 
 
 # Application definition
@@ -122,6 +123,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/stable/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = Path(BASE_DIR, 'static/')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
@@ -137,4 +139,29 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+}
+
+env_log_level = os.getenv("DJANGO_LOG_LEVEL", "INFO")
+if env_log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+    env_log_level = "INFO"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": env_log_level,
+            "propagate": False,
+        },
+    },
 }
