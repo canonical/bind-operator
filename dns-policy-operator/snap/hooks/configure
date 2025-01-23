@@ -1,0 +1,19 @@
+#!/bin/sh
+
+DJANGO_DEBUG="$(snapctl get django-debug)"
+export DJANGO_DEBUG
+
+case "$DJANGO_DEBUG" in
+  "true") ;;
+  "false") ;;
+  *)
+    >&2 echo "'$DJANGO_DEBUG is not a supported value for django_debug. Possible values are true, false"
+    return 1
+    ;;
+esac
+
+DJANGO_ALLOWED_HOSTS="$(snapctl get django-allowed-hosts)"
+export DJANGO_ALLOWED_HOSTS
+
+snapctl stop "$SNAP_INSTANCE_NAME"
+snapctl start "$SNAP_INSTANCE_NAME"

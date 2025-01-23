@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# The goal of this script is to prepare
+
+set -xe
+
+# ----
+# NGINX
+# As nginx is only supplementary to the workload of the charm.
+# As such, its files are handled in SNAP_DATA
+
+# Copy nginx configuration
+cp -r --preserve=mode "$SNAP/nginx" "$SNAP_DATA/nginx"
+
+# Create some directories for nginx
+mkdir -p "$SNAP_DATA/nginx/tmp/body"
+mkdir -p "$SNAP_DATA/nginx/tmp/nginx-proxy"
+mkdir -p "$SNAP_DATA/nginx/tmp/nginx-fastcgi"
+mkdir -p "$SNAP_DATA/nginx/tmp/nginx-uwsgi"
+mkdir -p "$SNAP_DATA/nginx/tmp/nginx-scgi"
+
+# Edit nginx configuration
+sed -i \
+  -e "s|<SNAP_DATA>|${SNAP_DATA}|g" \
+  -e "s|<SNAP_COMMON>|${SNAP_COMMON}|g" \
+  "$SNAP_DATA/nginx/nginx.conf"
+
+# Change ownership of some snap directories to allow snap_daemon to read/write
+# https://snapcraft.io/docs/system-usernames
+chown -R 584788:root "$SNAP_DATA/nginx"
+
+# ----
+# API (django and gunicorn)
+# The only thing that should be kept between refreshes is the database
+
+# Create the static directory for django
+cp -r "$SNAP/app" "$SNAP_DATA/"
+chmod -R 755 "$SNAP_DATA/app"
+
+# Prepare the django app
+export DJANGO_SECRET_KEY="thiskeyneedstobesetbutdoesntmatter"
+python3 "$SNAP_DATA/app/manage.py" collectstatic --noinput
+
+# Change ownership of some snap directories to allow snap_daemon to read/write
+# https://snapcraft.io/docs/system-usernames
+chown -R 584788:root "$SNAP_DATA/app"

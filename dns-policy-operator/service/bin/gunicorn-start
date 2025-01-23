@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -xe
+
+# The secret key is chosen randomly at the start of the gunicorn process
+# It is not critical that it remains the same across restarts
+# https://docs.djangoproject.com/en/5.1/ref/settings/#std:setting-SECRET_KEY
+DJANGO_SECRET_KEY="$(tr -dc a-zA-Z0-9 < /dev/urandom | head -c 50)"
+export DJANGO_SECRET_KEY
+DJANGO_DEBUG="$(snapctl get django-debug)"
+export DJANGO_DEBUG
+DJANGO_ALLOWED_HOSTS="$(snapctl get django-allowed-hosts)"
+export DJANGO_ALLOWED_HOSTS
+DJANGO_LOG_LEVEL="$(snapctl get django-log-level)"
+export DJANGO_LOG_LEVEL
+DJANGO_DATABASE_PATH="$SNAP_COMMON/app/db.sqlite3"
+export DJANGO_DATABASE_PATH
+exec "$SNAP/usr/bin/gunicorn" --chdir "$SNAP_DATA/app" --bind unix:/tmp/gunicorn.sock dns.wsgi --capture-output --log-level=debug
