@@ -1,0 +1,63 @@
+name: dns-policy-app
+base: core24
+version: '0.1'
+license: Apache-2.0
+summary: Dns policy app
+description: |
+  This snap bundles the DNS policy django application to be included in the dns-policy-operator.
+confinement: strict
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+
+system-usernames:
+  snap_daemon: shared
+
+parts:
+  service-files:
+    plugin: dump
+    source: service
+    override-prime: |
+      craftctl default
+      chmod +rx $CRAFT_PRIME/bin/*
+  src:
+    plugin: dump
+    source: .
+    override-stage: |
+      craftctl default
+      chmod 775 -R app
+    prime:
+      - app
+  requirements:
+    plugin: python
+    source: app
+    python-requirements:
+      - requirements.txt
+    stage-packages:
+      - gunicorn
+      - nginx-core
+      - util-linux  # contains the setpriv utility
+      - python3
+    stage:
+      # Remove scripts that we'll be replacing with our own
+      - -etc/nginx/nginx.conf
+  config:
+    after: [requirements]
+    plugin: dump
+    source: config
+
+apps:
+  gunicorn:
+    command: bin/gunicorn-start
+    daemon: simple
+    plugs: [network, network-bind, home]
+    environment:
+      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages:$PYTHONPATH
+  nginx:
+    daemon: simple
+    command: bin/nginx-start
+    plugs: [network, network-bind, home]
+    reload-command: bin/nginx-reload
+  manage:
+    command: bin/manage

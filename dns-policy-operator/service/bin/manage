@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -xe
+
+DJANGO_DEBUG="$(snapctl get django-debug)"
+export DJANGO_DEBUG
+DJANGO_ALLOWED_HOSTS="$(snapctl get django-allowed-hosts)"
+export DJANGO_ALLOWED_HOSTS
+DJANGO_LOG_LEVEL="$(snapctl get django-log-level)"
+export DJANGO_LOG_LEVEL
+DJANGO_DATABASE_PATH="$SNAP_COMMON/app/db.sqlite3"
+export DJANGO_DATABASE_PATH
+exec "$SNAP/usr/bin/setpriv" --clear-groups --reuid snap_daemon --regid snap_daemon -- python3 "$SNAP_DATA/app/manage.py" "$@"
