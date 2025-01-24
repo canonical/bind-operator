@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
