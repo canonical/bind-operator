@@ -19,6 +19,7 @@ header:
     - '**/*.rule'
     - '**/*.tmpl'
     - '**/*.txt'
+    - '**/mime.types'
     - 'CODEOWNERS'
     - '.codespellignore'
     - '.dockerignore'
