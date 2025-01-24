@@ -1,3 +1,6 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """WSGI config for dns project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.

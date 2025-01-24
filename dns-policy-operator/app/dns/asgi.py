@@ -1,3 +1,6 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """ASGI config for dns project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.

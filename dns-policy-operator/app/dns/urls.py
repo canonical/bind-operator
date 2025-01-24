@@ -1,3 +1,6 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """URL configuration for dns project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
