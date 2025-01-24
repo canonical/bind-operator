@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 # The goal of this script is to prepare
 
 set -xe

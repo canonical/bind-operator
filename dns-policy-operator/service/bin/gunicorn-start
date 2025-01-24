@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 set -xe
 
 # The secret key is chosen randomly at the start of the gunicorn process
