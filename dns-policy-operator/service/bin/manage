@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 set -xe
 
 DJANGO_DEBUG="$(snapctl get django-debug)"
