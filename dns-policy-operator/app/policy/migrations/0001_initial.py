@@ -37,7 +37,6 @@ def create_reviewer_group(apps, schema_editor):
         content_type=content_type,
     )
     reviewer_group.permissions.add(permission)
-
     reviewer_group.save()
 
 

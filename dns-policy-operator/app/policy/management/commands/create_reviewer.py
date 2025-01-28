@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 self.stderr.write("Error: Your passwords didn't match.")
                 # Don't validate passwords that don't match.
                 return
-
+              
         if password.strip() == "":
             self.stderr.write("Error: Blank passwords aren't allowed.")
             # Don't validate blank passwords.
