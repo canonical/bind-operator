@@ -3,7 +3,9 @@
 
 """Create reviewer command."""
 
+import select
 import getpass
+import sys
 
 from django.contrib.auth.models import Group, User
 from django.contrib.auth.password_validation import validate_password
@@ -23,45 +25,43 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Handle CLI invocation."""
-        username = options['username']
-        email = options['email']
-
-        # Took example on Django here
-        # ref: https://github.com/django/django/blob/main/django/contrib/auth/management/commands/createsuperuser.py#L172
-        password = getpass.getpass()
-        password2 = getpass.getpass("Password (again): ")
-        if password != password2:
-            self.stderr.write("Error: Your passwords didn't match.")
-            # Don't validate passwords that don't match.
-            return
+        # Check if there is any input available on sys.stdin
+        rlist, _, _ = select.select([sys.stdin], [], [], 0)
+        if rlist:
+            # Read password from STDIN
+            password = sys.stdin.readline().strip()
+        else:
+            # Took example on Django here
+            # ref: https://github.com/django/django/blob/main/django/contrib/auth/management/commands/createsuperuser.py#L172
+            password = getpass.getpass()
+            password_repeat = getpass.getpass("Password (again): ")
+            if password != password_repeat:
+                self.stderr.write("Error: Your passwords didn't match.")
+                # Don't validate passwords that don't match.
+                return
+              
         if password.strip() == "":
             self.stderr.write("Error: Blank passwords aren't allowed.")
             # Don't validate blank passwords.
             return
         try:
-            validate_password(password2)
+            validate_password(password)
         except exceptions.ValidationError as err:
             self.stderr.write("\n".join(err.messages))
-            response = input(
-                "Bypass password validation and create user anyway? [y/N]: "
-            )
-            if response.lower() != "y":
-                return
+            return
 
-        try:
-            user = User.objects.get(username=username)
-            self.stdout.write(self.style.WARNING(f'User {username} already exists'))
-        except User.DoesNotExist:
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password,
-                is_staff=True,
-            )
-            self.stdout.write(self.style.SUCCESS(f'User {username} created successfully'))
-            try:
-                reviewer_group = Group.objects.get(name='Reviewers')
-                user.groups.add(reviewer_group)
-                self.stdout.write(self.style.SUCCESS(f'User {username} created successfully and added to Reviewers group'))
-            except Group.DoesNotExist:
-                self.stdout.write(self.style.WARNING(f'User {username} created successfully, but Reviewers group does not exist'))
+        user, created = User.objects.get_or_create(
+            username=options['username'],
+            defaults={
+                'email': options['email'],
+                'password': password,
+                'is_staff': True,
+            }
+        )
+        if not created:
+            self.stdout.write(self.style.WARNING(f'User {options['username']} already exists'))
+            return
+
+        reviewer_group = Group.objects.get_or_create(name='Reviewers')
+        user.groups.add(reviewer_group)
+        self.stdout.write(self.style.SUCCESS(f'User {options['username']} created successfully'))

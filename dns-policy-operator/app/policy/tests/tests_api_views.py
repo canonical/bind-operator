@@ -21,7 +21,7 @@ class TestListAllRequestsView(APITestCase):
         self.approver_group = Group.objects.create(name='Approver')
         self.user = User.objects.create_user('testuser', 'testuser@example.com', 'password')
         self.user.groups.add(self.approver_group)
-        self.record_request = RecordRequest.objects.create(status='pending')
+        self.record_request = RecordRequest.objects.create(status=RecordRequest.Status.PENDING)
 
     def test_get_all_requests(self):
         """Test get all requests."""
@@ -47,8 +47,8 @@ class TestListPendingRequestsView(APITestCase):
         self.approver_group = Group.objects.create(name='Approver')
         self.user = User.objects.create_user('testuser', 'testuser@example.com', 'password')
         self.user.groups.add(self.approver_group)
-        self.pending_request = RecordRequest.objects.create(status='pending')
-        self.approved_request = RecordRequest.objects.create(status='approved')
+        self.pending_request = RecordRequest.objects.create(status=RecordRequest.Status.PENDING)
+        self.approved_request = RecordRequest.objects.create(status=RecordRequest.Status.APPROVED)
 
     def test_get_pending_requests(self):
         """Test get pending requests."""
@@ -74,8 +74,8 @@ class TestListApprovedRequestsView(APITestCase):
         self.approver_group = Group.objects.create(name='Approver')
         self.user = User.objects.create_user('testuser', 'testuser@example.com', 'password')
         self.user.groups.add(self.approver_group)
-        self.approved_request = RecordRequest.objects.create(status='approved')
-        self.pending_request = RecordRequest.objects.create(status='pending')
+        self.approved_request = RecordRequest.objects.create(status=RecordRequest.Status.APPROVED)
+        self.pending_request = RecordRequest.objects.create(status=RecordRequest.Status.PENDING)
 
     def test_get_approved_requests(self):
         """Test get approved requests."""
@@ -101,8 +101,8 @@ class TestListDeniedRequestsView(APITestCase):
         self.approver_group = Group.objects.create(name='Approver')
         self.user = User.objects.create_user('testuser', 'testuser@example.com', 'password')
         self.user.groups.add(self.approver_group)
-        self.denied_request = RecordRequest.objects.create(status='denied')
-        self.approved_request = RecordRequest.objects.create(status='approved')
+        self.denied_request = RecordRequest.objects.create(status=RecordRequest.Status.DENIED)
+        self.approved_request = RecordRequest.objects.create(status=RecordRequest.Status.APPROVED)
 
     def test_get_denied_requests(self):
         """Test get denied requests."""
@@ -127,7 +127,7 @@ class TestApproveRequestView(APITestCase):
         self.approver_group = Group.objects.create(name='Approver')
         self.user = User.objects.create_user('testuser', 'testuser@example.com', 'password')
         self.user.groups.add(self.approver_group)
-        self.request = RecordRequest.objects.create(status='pending')
+        self.request = RecordRequest.objects.create(status=RecordRequest.Status.PENDING)
         self.some_uuid = UUID('497dcba3-ecbf-4587-a2dd-5eb0665e6880')
 
     def test_approve_request(self):
@@ -136,7 +136,7 @@ class TestApproveRequestView(APITestCase):
         url = reverse('api_request_approve', args=[self.request.pk])
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(RecordRequest.objects.get(pk=self.request.pk).status, 'approved')
+        self.assertEqual(RecordRequest.objects.get(pk=self.request.pk).status, RecordRequest.Status.APPROVED)
 
     def test_unauthenticated_access(self):
         """Test unauthenticated access."""
@@ -161,7 +161,7 @@ class TestDenyRequestView(APITestCase):
         self.approver_group = Group.objects.create(name='Approver')
         self.user = User.objects.create_user('testuser', 'testuser@example.com', 'password')
         self.user.groups.add(self.approver_group)
-        self.request = RecordRequest.objects.create(status='pending')
+        self.request = RecordRequest.objects.create(status=RecordRequest.Status.PENDING)
         self.some_uuid = UUID('497dcba3-ecbf-4587-a2dd-5eb0665e6880')
 
     def test_deny_request(self):
@@ -170,7 +170,7 @@ class TestDenyRequestView(APITestCase):
         url = reverse('api_request_deny', args=[self.request.pk])
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(RecordRequest.objects.get(pk=self.request.pk).status, 'denied')
+        self.assertEqual(RecordRequest.objects.get(pk=self.request.pk).status, RecordRequest.Status.DENIED)
 
     def test_unauthenticated_access(self):
         """Test unauthenticated access."""

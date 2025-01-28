@@ -39,7 +39,7 @@ class ListApprovedRequestsView(APIView):
 
     def get(self, request):
         """Get approved requests."""
-        record_requests = RecordRequest.objects.filter(status='approved')
+        record_requests = RecordRequest.objects.filter(status=RecordRequest.Status.APPROVED)
         serializer = RecordRequestSerializer(record_requests, many=True)
         return Response(serializer.data)
 
@@ -50,7 +50,7 @@ class ListDeniedRequestsView(APIView):
 
     def get(self, request):
         """Get denied requests."""
-        record_requests = RecordRequest.objects.filter(status='denied')
+        record_requests = RecordRequest.objects.filter(status=RecordRequest.Status.DENIED)
         serializer = RecordRequestSerializer(record_requests, many=True)
         return Response(serializer.data)
 
@@ -65,7 +65,7 @@ class ApproveRequestView(APIView):
             record_request = RecordRequest.objects.get(pk=pk)
         except RecordRequest.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        record_request.status = 'approved'
+        record_request.status = RecordRequest.Status.APPROVED
         record_request.approver = request.user
         record_request.save()
         return Response(status=status.HTTP_200_OK)
@@ -81,6 +81,6 @@ class DenyRequestView(APIView):
             record_request = RecordRequest.objects.get(pk=pk)
         except RecordRequest.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        record_request.status = 'denied'
+        record_request.status = RecordRequest.Status.DENIED
         record_request.save()
         return Response(status=status.HTTP_200_OK)
