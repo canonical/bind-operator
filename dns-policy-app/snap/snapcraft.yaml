@@ -23,7 +23,7 @@ parts:
     source: service
     override-prime: |
       craftctl default
-      chmod +rx $CRAFT_PRIME/bin/*
+      chmod -R +rx $CRAFT_PRIME/bin
   src:
     plugin: dump
     source: .
