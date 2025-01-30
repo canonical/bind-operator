@@ -64,3 +64,4 @@ apps:
     reload-command: bin/nginx-reload
   manage:
     command: bin/manage
+    plugs: [network, network-bind, home]
