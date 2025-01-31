@@ -1,0 +1,14 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+create-reviewer:
+  description: Create a reviewer
+  params:
+    username:
+      type: string
+      description: Username
+    email:
+      type: string
+      description: Email
+  required:
+    - username
+    - email
