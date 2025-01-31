@@ -1,6 +1,6 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
-#
+
 name: dns-policy-app
 base: core24
 version: '0.1'
