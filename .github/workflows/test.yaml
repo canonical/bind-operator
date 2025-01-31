@@ -11,3 +11,42 @@ jobs:
       self-hosted-runner: false
       self-hosted-runner-label: "edge"
       working-directory: ./bind-operator
+
+  django-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          cd dns-policy-app/app
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+          docker run --rm --name db -d -e POSTGRES_PASSWORD=testpassword postgres:17.2
+          sleep 60 # wait a bit for the container to start
+          export $(xargs < ci/.test-env) && ./manage.py test
+
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install ruff
+
+      - name: Run Ruff
+        run: |
+          ruff check dns-policy-app/app/

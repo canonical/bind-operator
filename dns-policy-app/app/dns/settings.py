@@ -82,11 +82,11 @@ WSGI_APPLICATION = "dns.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
-        "HOST": os.getenv("DATABASE_HOST", "localhost"),
-        "PORT": os.getenv("DATABASE_PORT", 5432),
-        "USER": os.getenv("DATABASE_USER", "postgres"),
-        "NAME": os.getenv("DATABASE_NAME", "postgres"),
+        "PASSWORD": os.getenv("DJANGO_DATABASE_PASSWORD", ""),
+        "HOST": os.getenv("DJANGO_DATABASE_HOST", "localhost"),
+        "PORT": os.getenv("DJANGO_DATABASE_PORT", 5432),
+        "USER": os.getenv("DJANGO_DATABASE_USER", "postgres"),
+        "NAME": os.getenv("DJANGO_DATABASE_NAME", "postgres"),
     }
 }
 
@@ -144,7 +144,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-env_log_level = os.getenv("DJANGO_LOG_LEVEL", "INFO")
+env_log_level = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()
 if env_log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
     env_log_level = "INFO"
 
