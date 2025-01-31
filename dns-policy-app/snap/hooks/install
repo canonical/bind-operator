@@ -11,5 +11,6 @@ set -xe
 mkdir -p "$SNAP_COMMON/app"
 
 # set default configuration values
-snapctl set django-debug='false'
-snapctl set django-allowed-hosts='["localhost", "127.0.0.1", "0.0.0.0"]'
+snapctl set debug='false'
+snapctl set allowed-hosts='["localhost", "127.0.0.1", "0.0.0.0"]'
+snapctl set log-level='INFO'
