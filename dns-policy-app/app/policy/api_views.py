@@ -84,3 +84,16 @@ class DenyRequestView(APIView):
         record_request.status = RecordRequest.Status.DENIED
         record_request.save()
         return Response(status=status.HTTP_200_OK)
+
+
+class CreateRecordRequestView(APIView):
+    """Create record request."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """Create request."""
+        serializer = RecordRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

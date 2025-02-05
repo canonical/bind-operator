@@ -14,4 +14,5 @@ urlpatterns = [
     path('requests/denied/', api_views.ListDeniedRequestsView.as_view(), name="api_list_denied"),
     path('requests/<uuid:pk>/approve/', api_views.ApproveRequestView.as_view(), name="api_request_approve"),
     path('requests/<uuid:pk>/deny/', api_views.DenyRequestView.as_view(), name="api_request_deny"),
+    path('requests/create', api_views.CreateRecordRequestView.as_view(), name='create_record_request'),
 ]

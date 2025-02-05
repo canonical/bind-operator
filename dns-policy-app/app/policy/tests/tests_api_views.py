@@ -185,3 +185,53 @@ class TestDenyRequestView(APITestCase):
         url = reverse('api_request_deny', args=[self.some_uuid])
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class TestRecordRequestCreation(APITestCase):
+    def setUp(self):
+        self.user = self.create_user()
+
+    def create_user(self):
+        return self.create_user_with_credentials('testuser', 'testpassword')
+
+    def create_user_with_credentials(self, username, password):
+        user = User.objects.create_user(username=username, password=password)
+        return user
+
+    def test_create_record_request(self):
+        self.client.force_authenticate(user=self.user)
+        record_request_data = {
+            'domain': 'example.com',
+            'host_label': 'test',
+            'ttl': 3600,
+            'record_type': 'A',
+            'record_data': '192.0.2.1',
+            'status': 'pending',
+        }
+        response = self.client.post(reverse('create_record_request'), record_request_data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(RecordRequest.objects.count(), 1)
+
+    def test_create_record_request_without_authentication(self):
+        record_request_data = {
+            'domain': 'example.com',
+            'host_label': 'test',
+            'ttl': 3600,
+            'record_type': 'A',
+            'record_data': '192.0.2.1',
+            'status': 'pending',
+        }
+        response = self.client.post(reverse('create_record_request'), record_request_data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_record_request_with_invalid_data(self):
+        self.client.force_authenticate(user=self.user)
+        record_request_data = {
+            'domain': '',
+            'host_label': 'test',
+            'ttl': 3600,
+            'record_type': 'A',
+            'record_data': '192.0.2.1',
+            'status': 'pending',
+        }
+        response = self.client.post(reverse('create_record_request'), record_request_data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
