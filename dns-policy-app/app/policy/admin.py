@@ -4,10 +4,10 @@
 """Admin module registration."""
 
 from django.contrib import admin
-from django.urls import reverse
-from django.http import HttpRequest
 from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
+from django.http import HttpRequest
+from django.urls import reverse
 
 from .models import RecordRequest
 
@@ -31,7 +31,7 @@ class RecordRequestAdmin(admin.ModelAdmin):
         """Get app list."""
         app_list = super().get_app_list(request)
         app_list.append({
-            'name': 'Approver Interface',
+            'name': 'Reviewer Interface',
             'url': reverse('approver_interface'),
         })
         return app_list
@@ -39,7 +39,7 @@ class RecordRequestAdmin(admin.ModelAdmin):
     def has_change_permission(self, request: HttpRequest, obj=None):
         """Change permission."""
         if obj is None:
-            return request.user.is_superuser or request.user.groups.filter(name='Approvers').exists()
+            return request.user.is_superuser or request.user.groups.filter(name='Reviewers').exists()
         else:
             return request.user.is_superuser
 
