@@ -14,11 +14,20 @@ class RecordRequest(models.Model):
     """Record request model."""
 
     class Status(models.TextChoices):
-        """Record request statuses."""
-        PENDING = 'pending'
-        APPROVED = 'approved'
-        DENIED = 'denied'
+        """Record request statuses.
+
+        A record request, when received, passes some checks to see if it's invalid.
+        If yes, its status is INVALID.
+        If everything went alright, it receives the PENDING status.
+        A reviewer can then deny or approve it, marking it DENIED or APPROVED.
+        An approved record request is then sent to bind-operator which may add it to its config.
+        If it does not get published it is marked as FAILED, if it does get published, is is PUBLISHED.
+
+        """
         INVALID = 'invalid'
+        PENDING = 'pending'
+        DENIED = 'denied'
+        APPROVED = 'approved'
         FAILED = 'failed'
         PUBLISHED = 'published'
 

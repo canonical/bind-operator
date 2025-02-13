@@ -52,9 +52,7 @@ class RecordRequestAdmin(admin.ModelAdmin):
     list_max_show_all = 200
     search_fields = ['host_label', 'domain', 'record_type', 'record_data', 'status']
     search_help_text = 'Search by status, host label, domain, record type, or record data'
-    list_display_links = [
-        'reviewer',
-    ]
+    list_display_links = ['uuid']
     list_display = [
         'host_label',
         'domain',
@@ -67,6 +65,7 @@ class RecordRequestAdmin(admin.ModelAdmin):
         'reviewer',
         'created_at',
         'last_modified_at',
+        'uuid',
     ]
     list_filter = [
         'domain',

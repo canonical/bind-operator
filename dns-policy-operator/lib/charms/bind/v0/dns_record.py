@@ -67,7 +67,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 PYDEPS = ["pydantic>=2"]
 
@@ -86,6 +86,7 @@ from pydantic import (
     PlainValidator,
     ValidationError,
     ValidationInfo,
+    field_serializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -255,6 +256,27 @@ class RequirerEntry(BaseModel):
     record_type: Optional[RecordType] = None
     record_data: IPvAnyAddress
     uuid: UUID
+
+    # Serializer for enums (use their value)
+    @field_serializer("record_class", "record_type")
+    def serialize_enum(self, value: RecordClass | RecordType | None) -> str | None:
+        """Serialize enum."""
+        return value.value if value else None
+
+    @field_serializer("ttl")
+    def serialize_ttl(self, ttl: Optional[int]):
+        """Serialize record class."""
+        return str(ttl) if ttl is not None else ""
+
+    @field_serializer("uuid")
+    def serialize_dt(self, uuid: UUID):
+        """Serialize uuid."""
+        return str(uuid)
+
+    @field_serializer("record_data")
+    def serialize_record_data(self, record_data: IPvAnyAddress):
+        """Serialize record data."""
+        return str(record_data)
 
     def validate_dns_entry(self, _: ValidationInfo) -> "RequirerEntry":
         """Validate DNS entries.

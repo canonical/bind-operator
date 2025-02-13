@@ -15,7 +15,7 @@ import constants
 class DatabaseHandler(Object):
     """The Database relation observer."""
 
-    def __init__(self, charm: CharmBase, relation_name):
+    def __init__(self, charm: CharmBase, relation_name: str) -> None:
         """Initialize the observer and register event handlers.
 
         Args:
@@ -84,4 +84,3 @@ class DatabaseHandler(Object):
             bool: returns True if the relation is ready.
         """
         return self.get_relation_data()["POSTGRES_HOST"] != ""
-

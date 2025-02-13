@@ -64,6 +64,13 @@ requires:
   database:
     interface: postgresql_client
     limit: 1
+  dns-record-requirer:
+    interface: dns_record
+    limit: 1
+
+provides:
+  dns-record-provider:
+    interface: dns_record
 
 parts:
   app:

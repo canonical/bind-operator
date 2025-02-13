@@ -272,10 +272,13 @@ class BindCharm(ops.CharmBase):
             raise PeerRelationUnavailableError(
                 "Peer relation not available when trying to get topology."
             )
-        if binding.network is None:
-            raise PeerRelationNetworkUnavailableError(
-                "Peer relation network not available when trying to get unit IP."
-            )
+        try:
+            if binding.network is None:
+                raise PeerRelationNetworkUnavailableError(
+                    "Peer relation network not available when trying to get unit IP."
+                )
+        except ops.model.ModelError as e:
+            raise PeerRelationNetworkUnavailableError(str(e)) from e
 
         units_ip: list[str] = [
             unit_data.get("private-address", "")

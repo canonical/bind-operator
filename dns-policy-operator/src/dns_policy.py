@@ -3,15 +3,19 @@
 
 """App charm business logic."""
 
+import json
 import logging
 import pathlib
 import subprocess  # nosec
 
 import ops
-from charms.bind.v0.dns_record import DNSRecordProviderData, DNSRecordRequirerData
-from charms.operator_libs_linux.v1 import systemd
+import pydantic
+import requests
+from charms.bind.v0.dns_record import DNSRecordProviderData, DNSRecordRequirerData, RequirerEntry
 from charms.operator_libs_linux.v2 import snap
+
 import constants
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +54,14 @@ class InstallError(SnapError):
 
 class ConfigureError(SnapError):
     """Exception raised when unable to configure the service."""
+
+
+class RootTokenError(DnsPolicyCharmError):
+    """Exception raised when unable to get a valid root token."""
+
+
+class GetApprovedRecordRequestsError(DnsPolicyCharmError):
+    """Exception raised when unable to get approved record requests."""
 
 
 class DnsPolicyService:
@@ -119,7 +131,7 @@ class DnsPolicyService:
             unit_name: The name of the current unit
         """
         self._install_snap_package_from_file(
-            "/var/lib/juju/agents/unit-dns-policy-operator-0/charm/dns-policy-app_0.1_amd64.snap"
+            f"/var/lib/juju/agents/unit-{unit_name.replace('/','-')}/charm/dns-policy-app_0.1_amd64.snap"
         )
 
     def collect_status(
@@ -173,9 +185,7 @@ class DnsPolicyService:
             logger.exception(error_msg)
             raise InstallError(error_msg) from e
 
-    def _install_snap_package_from_file(
-        self, snap_path: str | None
-    ) -> None:
+    def _install_snap_package_from_file(self, snap_path: str) -> None:
         """Installs snap package.
 
         Args:
@@ -191,13 +201,35 @@ class DnsPolicyService:
                 "Installing from custom dns-policy snap located: %s",
                 snap_path,
             )
-            subprocess.check_output(
-                ["sudo", "snap", "install", snap_path, "--dangerous"]
-            )  # nosec
-        except (snap.SnapError, snap.SnapNotFoundError, subprocess.CalledProcessError) as e:
+            subprocess.check_output(["sudo", "snap", "install", snap_path, "--dangerous"])  # nosec
+        except (snap.SnapError, snap.SnapNotFoundError) as e:
             error_msg = f"An exception occurred when installing {snap_path}. Reason: {e}"
             logger.exception(error_msg)
             raise InstallError(error_msg) from e
+        except subprocess.CalledProcessError as e:
+            error_msg = f"An exception occurred when installing {snap_path}. Reason: {e}. Output: {e.output}"
+            logger.exception(error_msg)
+            raise InstallError(error_msg) from e
+
+    def get_config(self) -> dict:
+        """Get the configuration of the dns-policy service.
+
+        Returns:
+            dict of configuration values
+
+        Raises:
+            ConfigureError: when encountering a SnapError
+        """
+        try:
+            cache = snap.SnapCache()
+            charmed_bind = cache[constants.DNS_SNAP_NAME]
+            return charmed_bind.get(None, typed=True)
+        except snap.SnapError as e:
+            error_msg = (
+                f"An exception occurred when configuring {constants.DNS_SNAP_NAME}. Reason: {e}"
+            )
+            logger.error(error_msg)
+            raise ConfigureError(error_msg) from e
 
     def configure(self, config: dict[str, str]) -> None:
         """Configure the dns-policy service.
@@ -219,7 +251,7 @@ class DnsPolicyService:
             logger.error(error_msg)
             raise ConfigureError(error_msg) from e
 
-    def command(self, cmd: str, env: dict) -> str:
+    def command(self, cmd: str) -> str:
         """Run manage command of the dns-policy service.
 
         Args:
@@ -234,9 +266,67 @@ class DnsPolicyService:
             # as it can only be done from the operator of the charm
             return subprocess.check_output(
                 ["sudo", "snap", "run", f"{constants.DNS_SNAP_NAME}.manage"] + cmd.split(),
-                env=env,
             ).decode(  # nosec
                 "utf-8"
             )
         except subprocess.SubprocessError as e:
             return f"Error: {e}"
+
+    def get_api_root_token(self) -> str:
+        """Get API root token."""
+        try:
+            tokens = json.loads(self.command("get_root_token"))
+        except json.decoder.JSONDecodeError as e:
+            raise RootTokenError(str(e)) from e
+        if not isinstance(tokens, dict) or "access" not in tokens or tokens["access"] == "":
+            raise RootTokenError("Invalid root token!")
+        return tokens["access"]
+
+    def send_requests(self, token: str, record_requests: list[RequirerEntry]) -> bool:
+        """Send record requests."""
+        # logger.debug("Send: %s", json.dumps([x.model_dump() for x in record_requests]))
+        req = requests.post(
+            "http://localhost:8080/api/requests/",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}",
+            },
+            data=json.dumps([x.model_dump() for x in record_requests]),
+        )
+        # logger.debug("Send result: %s %s", req.status_code, req.text)
+        return req.status_code == 200
+
+    def create_record_request(self, token: str, record_request: models.DnsEntry) -> bool:
+        """Create record request."""
+        req = requests.post(
+            "http://localhost:8080/api/requests/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}",
+            },
+            data=record_request.json(),
+        )
+        logger.debug(f"Create RR: {req.text}")
+        return req.status_code == 201
+
+    def get_approved_requests(self, token: str) -> list[RequirerEntry]:
+        """Get approved record requests."""
+        req = requests.get(
+            "http://localhost:8080/api/requests/approved/",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}",
+            },
+        )
+
+        try:
+            entries = []
+            for rr in req.json():
+                # TODO
+                rr["record_class"] = "IN"
+                logger.debug("RR: %s", rr)
+                entry = RequirerEntry.model_validate(rr)
+                entries.append(entry)
+        except pydantic.ValidationError as e:
+            raise GetApprovedRecordRequestsError(str(e)) from e
+        return entries

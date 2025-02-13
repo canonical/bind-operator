@@ -21,6 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if SECRET_KEY == "":
+    with open(Path(BASE_DIR, '.secret'), "r", encoding="utf-8") as secretfile:
+        SECRET_KEY = secretfile.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "") == "true"
