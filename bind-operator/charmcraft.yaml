@@ -9,6 +9,11 @@ bases:
     - name: ubuntu
       channel: "22.04"
 parts:
+  app:
+    plugin: dump
+    source: .
+    prime:
+      - charmed-bind_*_amd64.snap
   charm:
     build-snaps:
       - rustup

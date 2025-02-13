@@ -66,6 +66,7 @@ requires:
     limit: 1
   dns-record-requirer:
     interface: dns_record
+    scope: container
     limit: 1
 
 provides:
@@ -85,3 +86,5 @@ parts:
     override-build: |
       rustup default stable
       craftctl default
+
+subordinate: true

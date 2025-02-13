@@ -112,14 +112,39 @@ class BindService:
         Args:
             unit_name: The name of the current unit
         """
-        self._install_snap_package(
-            snap_name=constants.DNS_SNAP_NAME,
-            snap_channel=constants.SNAP_PACKAGES[constants.DNS_SNAP_NAME]["channel"],
+        self._install_snap_package_from_file(
+            f"/var/lib/juju/agents/unit-{unit_name.replace('/','-')}/charm/charmed-bind_jammy_amd64.snap"
         )
         self._install_bind_reload_service(unit_name)
         # We need to put the service zone in place so we call
         # the following with an empty relation and topology.
         self.update_zonefiles_and_reload([], None)
+
+    def _install_snap_package_from_file(self, snap_path: str) -> None:
+        """Installs snap package.
+
+        Args:
+            snap_path: The path to the snap to install, can be blank.
+
+        Raises:
+            InstallError: when encountering a SnapError or a SnapNotFoundError
+        """
+        try:
+            # Installing the charm via subprocess.
+            # Calling subprocess here is not a security issue.
+            logger.info(
+                "Installing from custom dns-policy snap located: %s",
+                snap_path,
+            )
+            subprocess.check_output(["sudo", "snap", "install", snap_path, "--dangerous"])  # nosec
+        except (snap.SnapError, snap.SnapNotFoundError) as e:
+            error_msg = f"An exception occurred when installing {snap_path}. Reason: {e}"
+            logger.exception(error_msg)
+            raise InstallError(error_msg) from e
+        except subprocess.CalledProcessError as e:
+            error_msg = f"An exception occurred when installing {snap_path}. Reason: {e}. Output: {e.output}"
+            logger.exception(error_msg)
+            raise InstallError(error_msg) from e
 
     def _install_bind_reload_service(self, unit_name: str) -> None:
         """Install the bind reload service.
