@@ -1,0 +1,52 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+type: charm
+name: dns-integrator
+title: DNS Integrator
+summary: DNS integrator to create DNS records
+description: |
+  A [Juju](https://juju.is/) [charm](https://juju.is/docs/olm/charmed-operators)
+  deploying and managing a DNS Integrator on Kubernetes and bare metal.
+  The Domain Name System (DNS) is a hierarchical and distributed name service
+  that provides a naming system for computers, services, and other resources on
+  the Internet or other Internet Protocol (IP) networks
+
+  This charm simplifies configuration of DNS by providing a simple way to express
+  DNS record request to a compatible DNS operator provider. It can be
+  deployed on many different Kubernetes platforms, from [MicroK8s](https://microk8s.io)
+  to [Charmed Kubernetes](https://ubuntu.com/kubernetes) and public cloud Kubernetes
+  offerings but also on virtual machines or bare metal.
+links:
+  contact: https://launchpad.net/~canonical-is-devops
+  documentation: https://github.com/canonical/bind-operator
+  issues:
+    - https://github.com/canonical/bind-operator/issues
+  source:
+    - https://github.com/canonical/bind-operator
+
+requires:
+  dns-record:
+    interface: dns_record
+bases:
+  - build-on:
+    - name: ubuntu
+      channel: "22.04"
+    run-on:
+    - name: ubuntu
+      channel: "22.04"
+parts:
+  charm:
+    build-snaps:
+      - rustup
+    override-build: |
+      rustup default stable
+      craftctl default
+config:
+  options:
+    requests:
+      description: |
+        List of DNS record requests formatted like the following:
+        [host_label] [domain] [ttl] [record_class] [record_type] [record_data]
+      default: ""
+      type: string

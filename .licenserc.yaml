@@ -19,6 +19,8 @@ header:
     - '**/*.rule'
     - '**/*.tmpl'
     - '**/*.txt'
+    - '**/lib/**'
+    - '**/zap_rules.tsv'
     - 'CODEOWNERS'
     - '.codespellignore'
     - '.dockerignore'
@@ -33,6 +35,4 @@ header:
     - '.wokeignore'
     - '.woke.yaml'
     - '.woke.yml'
-    - 'bind-operator/lib/**'
-    - 'bind-operator/zap_rules.tsv'
   comment: on-failure
