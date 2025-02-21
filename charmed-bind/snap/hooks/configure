@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+snapctl stop "$SNAP_INSTANCE_NAME"
+snapctl start "$SNAP_INSTANCE_NAME"

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+set -xe
+
+"$SNAP/bin/prepare"
+
+# Create some directories
+mkdir -p "$SNAP_COMMON/api"
+
+# Copy the bind config files to SNAP_COMMON
+cp -rf --preserve=mode "$SNAP/etc/bind" "$SNAP_COMMON/bind"
+
+# Fix the config files to take the new location into account
+SNAP_CURRENT="/var/snap/$SNAP_NAME/current"
+for file in "$SNAP_COMMON/bind"/* ; do
+  sed -i "s#/var/#$SNAP_CURRENT/var/#g" "$file"
+  sed -i "s#/usr/share/#$SNAP_CURRENT/usr/share/#g" "$file"
+  sed -i "s#/etc/#$SNAP_COMMON/#g" "$file"
+done
+
+# Create rndc.conf
+"$SNAP/usr/sbin/rndc-confgen" > "$SNAP_COMMON/bind/rndc.conf"
+
+# Amend named.conf with the generated rndc configuration
+awk '/^# (Start|End|Use)/ {next} /^#/ {sub(/^# /, ""); print}' < "$SNAP_COMMON/bind/rndc.conf" >> "$SNAP_COMMON/bind/named.conf"

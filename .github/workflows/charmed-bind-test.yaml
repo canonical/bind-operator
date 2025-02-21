@@ -1,0 +1,48 @@
+name: Charmed-bind tests
+
+on:
+  pull_request:
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+      - name: Run ShellCheck
+        run: |
+          cd charmed-bind
+          shellcheck service/bin/* snap/hooks/*
+
+  build-snap:
+    name: Build snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v29
+    with:
+      path-to-snap-project-directory: ./charmed-bind
+
+  snap-tests:
+    name: Test the resulting snap
+    runs-on: ubuntu-latest
+    needs:
+      - build-snap
+    steps:
+      - name: Download snap package(s)
+        uses: actions/download-artifact@v4.1.8
+        with:
+          pattern: ${{ needs.build-snap.outputs.artifact-prefix }}-*
+          merge-multiple: true
+
+      - name: Install snap
+        run: |
+          sudo snap install --dangerous charmed-bind/charmed-bind_*.snap
+          sleep 10 # wait a bit for things to start
+
+      - name: Verify that all services are active
+        run: |
+          sudo snap services charmed-bind | awk 'NR > 1 && $3 != "active" {exit 1}'
+
+      - name: Verify that we can reach the named service
+        run: |
+          sudo apt-get install -y bind9-dnsutils
+          dig @127.0.0.1 | grep "status: NOERROR"
+          sudo snap services charmed-bind | awk 'NR > 1 && $3 != "active" {exit 1}'

@@ -1,0 +1,53 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: charmed-bind
+base: core22
+version: 'jammy'
+license: Apache-2.0
+summary: Charmed BIND for Charmed Operators
+description: |
+  This is a snap that bundles BIND together with other tools of its ecosystem in order
+  to be used in Charmed Operators, providing automated operations management from day 0 to day 2 on
+  the BIND deployed on top of a Virtual Machine cluster and K8s cluster. It is an open source,
+  end-to-end, production ready data platform on top of cloud native technologies.
+
+  BIND is a suite of software for interacting with the Domain Name System (DNS).
+  Its most prominent component, named, performs both of the main DNS server roles,
+  acting as an authoritative name server for DNS zones and as a recursive resolver
+  in the network.
+confinement: strict
+architectures:
+  - build-on: [amd64]
+    build-for: [amd64]
+
+system-usernames:
+  snap_daemon: shared
+
+parts:
+  bind:
+    plugin: nil
+    stage-packages:
+      - bind9
+      - bind9-utils
+  service-files:
+    plugin: dump
+    source: service
+    stage-packages:
+      - util-linux  # contains the setpriv utility
+      - python3
+    override-prime: |
+      craftctl default
+      chmod +rx $CRAFT_PRIME/bin/*
+
+apps:
+  named:
+    command: bin/named-start
+    daemon: simple
+    restart-condition: on-failure
+    refresh-mode: endure
+    stop-mode: sigterm
+    reload-command: bin/named-reload
+    stop-command: bin/named-stop
+    plugs:
+      - network
+      - network-bind

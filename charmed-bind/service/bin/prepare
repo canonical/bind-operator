@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+# The goal of this script is to prepare
+
+set -xe
+
+# ----
+# BIND
+# Some parts of bind's files can be seen as part of the workload and renewed on refresh
+
+# Create some directories for bind
+mkdir -p "$SNAP_DATA/usr/share"
+mkdir -p "$SNAP_DATA/var/cache/bind"
+
+# Copy the config files to SNAP_DATA
+cp -rf --preserve=mode "$SNAP/usr/share/dns" "$SNAP_DATA/usr/share"
