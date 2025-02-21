@@ -19,8 +19,13 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if SECRET_KEY == "":
+    # We need to store the secret key somewhere to have it persist between
+    # the manage.py script calls and the gunicorn process (it needs to be the same for the JWT tokens).
+    # We could use a environment variable but it is easier to do manual operations if need be when it is stored in a file.
+    with open(Path(BASE_DIR, '.secret'), "r", encoding="utf-8") as secretfile:
+        SECRET_KEY = secretfile.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "") == "true"
@@ -43,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "policy.apps.PolicyConfig",
     'rest_framework',
+    "rest_framework_simplejwt",
 ]
 
 MIDDLEWARE = [
@@ -82,11 +88,11 @@ WSGI_APPLICATION = "dns.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
-        "HOST": os.getenv("DATABASE_HOST", "localhost"),
-        "PORT": os.getenv("DATABASE_PORT", 5432),
-        "USER": os.getenv("DATABASE_USER", "postgres"),
-        "NAME": os.getenv("DATABASE_NAME", "postgres"),
+        "PASSWORD": os.getenv("DJANGO_DATABASE_PASSWORD", ""),
+        "HOST": os.getenv("DJANGO_DATABASE_HOST", "localhost"),
+        "PORT": os.getenv("DJANGO_DATABASE_PORT", 5432),
+        "USER": os.getenv("DJANGO_DATABASE_USER", "postgres"),
+        "NAME": os.getenv("DJANGO_DATABASE_NAME", "postgres"),
     }
 }
 
@@ -138,13 +144,14 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.BasicAuthentication",
         "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
 
-env_log_level = os.getenv("DJANGO_LOG_LEVEL", "INFO")
+env_log_level = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()
 if env_log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
     env_log_level = "INFO"
 

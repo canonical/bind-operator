@@ -3,7 +3,7 @@
 
 """Define views."""
 
-from rest_framework import permissions, status
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -39,7 +39,13 @@ class ListApprovedRequestsView(APIView):
 
     def get(self, request):
         """Get approved requests."""
-        record_requests = RecordRequest.objects.filter(status=RecordRequest.Status.APPROVED)
+        record_requests = RecordRequest.objects.filter(
+            status__in=(
+                RecordRequest.Status.APPROVED,
+                RecordRequest.Status.FAILED,
+                RecordRequest.Status.PUBLISHED,
+            )
+        )
         serializer = RecordRequestSerializer(record_requests, many=True)
         return Response(serializer.data)
 
@@ -84,3 +90,32 @@ class DenyRequestView(APIView):
         record_request.status = RecordRequest.Status.DENIED
         record_request.save()
         return Response(status=status.HTTP_200_OK)
+
+class RequestsView(generics.ListCreateAPIView):
+    """Handle all record requests from incoming relations."""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = RecordRequest.objects.all()
+    serializer_class = RecordRequestSerializer
+
+    def post(self, request):
+        """Handle requests."""
+        existing_rrs = RecordRequest.objects.all()
+
+        # Add the new record requests
+        for rr in request.data:
+            # TODO: validate record request before setting status to pending
+            rr["status"] = "pending"
+            serializer = RecordRequestSerializer(data=rr)
+            if not serializer.is_valid(raise_exception=True):
+               continue
+            if any(str(r.uuid) == rr["uuid"] for r in existing_rrs):
+               continue
+            serializer.save()
+
+
+        # Remove the record requests absent from the query
+        for rr in existing_rrs:
+            if not any(r["uuid"] == str(rr.uuid) for r in request.data):
+                rr.delete()
+
+        return Response({}, status=status.HTTP_200_OK)

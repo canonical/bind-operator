@@ -10,6 +10,8 @@ from .models import RecordRequest
 
 class RecordRequestSerializer(serializers.ModelSerializer):
     """Define record request serializer."""
+    uuid = serializers.UUIDField(required=True)
+
     class Meta:
         """Define meta of the serializer."""
         model = RecordRequest

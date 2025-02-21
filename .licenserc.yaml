@@ -35,4 +35,5 @@ header:
     - '.woke.yml'
     - 'bind-operator/lib/**'
     - 'bind-operator/zap_rules.tsv'
+    - 'dns-policy-app/app/ci/.test-env'
   comment: on-failure
