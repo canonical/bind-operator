@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+set -xe
+
+"$SNAP/bin/prepare"
+
+# Create some directories
+mkdir -p "$SNAP_COMMON/app"
+
+# set default configuration values
+snapctl set debug='false'
+snapctl set allowed-hosts='["localhost", "127.0.0.1", "0.0.0.0"]'
+snapctl set log-level='INFO'
