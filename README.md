@@ -1,41 +1,21 @@
-[![CharmHub Badge](https://charmhub.io/bind/badge.svg)](https://charmhub.io/bind)
-[![Publish to edge](https://github.com/canonical/bind-operator/actions/workflows/publish_charm.yaml/badge.svg)](https://github.com/canonical/bind-operator/actions/workflows/publish_charm.yaml)
-[![Promote charm](https://github.com/canonical/bind-operator/actions/workflows/promote_charm.yaml/badge.svg)](https://github.com/canonical/bind-operator/actions/workflows/promote_charm.yaml)
-[![Discourse Status](https://img.shields.io/discourse/status?server=https%3A%2F%2Fdiscourse.charmhub.io&style=flat&label=CharmHub%20Discourse)](https://discourse.charmhub.io)
+# DNS charms
 
-# Bind Operator
+This repository contains the code for all the DNS charms:
+1. `bind`: A machine charm managing a bind instance configured as a primary DNS server. See the [bind README](bind-operator/README.md) for more information.
+2. `dns-policy`: A subordinate charm that adds a policy layer in front of the bind charm. See the [dns-policy README](dns-policy-operator/README.md) for more information.
+3. `dns-integrator`: An integrator charm that allows the creation of record request through its configuration. See the [dns-integrator README](dns-integrator-operator/README.md) for more information.
 
-A [Juju](https://juju.is/) [charm](https://juju.is/docs/olm/charmed-operators)
-deploying and managing a DNS server Integrator on bare metal.
-
-This charm simplifies configuration of a DNS server client by providing a single point
-of configuration for all the requirers using the same DNS server. It can be
-deployed on virtual machines or bare metal.
-
-As such, the charm makes it easy to manage and propagate DNS configuration, while
-giving the freedom to deploy on the substrate of their choice.
-
-For DevOps or SRE teams this charm will make operating any charm requiring dynamic DNS
-configuration simple and straightforward through Juju's clean interface.
+It also contains the snapped workload of some charms:
+1. `charmed-bind`: A snapped bind specifically made for the bind charm. See the [charmed-bind README](charmed-bind/README.md) for more information.
+2. `charmed-dns-policy`: A snapped django application specifically made for the dns-policy charm. See the [charmed-dns-policy README](charmed-dns-policy/README.md) for more information.
 
 ## Project and community
 
-The Bind Operator is a member of the Ubuntu family. It's an open source
-project that warmly welcomes community projects, contributions, suggestions,
-fixes and constructive feedback.
+The DNS charms project is a member of the Ubuntu family. It is an
+open source project that warmly welcomes community projects, contributions,
+suggestions, fixes and constructive feedback.
+
 * [Code of conduct](https://ubuntu.com/community/code-of-conduct)
 * [Get support](https://discourse.charmhub.io/)
-* [Join our online chat](https://chat.charmhub.io/charmhub/channels/charm-dev)
-* [Contribute](https://charmhub.io/bind/docs/how-to-contribute)
-Thinking about using the Bind Operator for your next project? [Get in touch](https://chat.charmhub.io/charmhub/channels/charm-dev)!
-
-## Contributing to this documentation
-
-Documentation is an important part of this project, and we take the same open-source approach to the documentation as the code. As such, we welcome community contributions, suggestions and constructive feedback on our documentation. Our documentation is hosted on the [Charmhub forum](https://charmhub.io/bind/docs) to enable easy collaboration. Please use the "Help us improve this documentation" links on each documentation page to either directly change something you see that's wrong, ask a question, or make a suggestion about a potential change via the comments section.
-
-If there's a particular area of documentation that you'd like to see that's missing, please [file a bug](https://github.com/canonical/bind-operator/issues).
-
----
-
-For further details,
-[see the charm's detailed documentation](https://charmhub.io/bind/docs).
+* [Issues](https://github.com/canonical/dns-charms/issues)
+* [Matrix](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
