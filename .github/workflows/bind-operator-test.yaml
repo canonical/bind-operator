@@ -34,3 +34,11 @@ jobs:
       self-hosted-runner: false
       self-hosted-runner-label: "edge"
       working-directory: ./bind-operator
+
+  success-if-not-changed:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    if: needs.check-changes.outputs.changed == 'false'
+    steps:
+      - name: Exit with success
+        run: exit 0

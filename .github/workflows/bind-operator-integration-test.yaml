@@ -36,3 +36,11 @@ jobs:
       juju-channel: 3.6/stable
       provider: lxd
       working-directory: ./bind-operator
+
+  success-if-not-changed:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    if: needs.check-changes.outputs.changed == 'false'
+    steps:
+      - name: Exit with success
+        run: exit 0
