@@ -26,7 +26,7 @@ jobs:
       changed: ${{ steps.changes.env.CHANGED }}
 
   integration-tests:
-    uses: nrobinaubertin/stable-operator-workflows/.github/workflows/integration_test.yaml@main
+    uses: canonical/operator-workflows/.github/workflows/integration_test.yaml@main
     needs: check-changes
     if: needs.check-changes.outputs.changed == 'true'
     secrets: inherit
