@@ -37,5 +37,5 @@ header:
     - '**/pyproject.toml'
     - '**/zap_rules.tsv'
     - '**/lib/**'
-    - 'dns-policy-app/app/ci/.test-env'
+    - 'charmed-dns-policy/app/ci/.test-env'
   comment: on-failure
