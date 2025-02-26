@@ -1,4 +1,4 @@
-name: Tests
+name: Charmed-dns-policy tests
 
 on:
   pull_request:
