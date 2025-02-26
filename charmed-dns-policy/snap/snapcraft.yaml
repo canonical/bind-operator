@@ -1,7 +1,7 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-name: dns-policy-app
+name: charmed-dns-policy
 base: core24
 version: '0.1'
 license: Apache-2.0
