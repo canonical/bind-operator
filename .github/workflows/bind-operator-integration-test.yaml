@@ -26,7 +26,7 @@ jobs:
       changed: ${{ steps.changes.env.CHANGED }}
 
   integration-tests:
-    uses: canonical/operator-workflows/.github/workflows/integration_test.yaml@main
+    uses: nrobinaubertin/stable-operator-workflows/.github/workflows/integration_test.yaml@main
     needs: check-changes
     if: needs.check-changes.outputs.changed == 'true'
     secrets: inherit
@@ -36,11 +36,3 @@ jobs:
       juju-channel: 3.6/stable
       provider: lxd
       working-directory: ./bind-operator
-
-  success-if-not-changed:
-    needs: check-changes
-    runs-on: ubuntu-latest
-    if: needs.check-changes.outputs.changed == 'false'
-    steps:
-      - name: Exit with success
-        run: exit 0
