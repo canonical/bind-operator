@@ -35,10 +35,11 @@ jobs:
       self-hosted-runner-label: "edge"
       working-directory: ./bind-operator
 
-  success-if-not-changed:
-    needs: check-changes
+  required_status_checks:
+    name: Required Test Status Checks
     runs-on: ubuntu-latest
+    needs: check-changes
     if: needs.check-changes.outputs.changed == 'false'
     steps:
-      - name: Exit with success
-        run: exit 0
+      - name: Fake successful check
+        run: echo "No changes detected - Skipping tests. Status checks passed."
