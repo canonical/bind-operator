@@ -2,33 +2,12 @@ name: Bind-operator tests
 
 on:
   pull_request:
+    paths:
+      - './bind-operator/**'
 
 jobs:
-  check-changes:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Set directory
-        env:
-          DIRECTORY: ./bind-operator
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [ -n "$(git diff $BASE..HEAD -- $DIRECTORY)" ]; then
-            echo "CHANGED=true" >> $GITHUB_ENV
-          else
-            echo "CHANGED=false" >> $GITHUB_ENV
-          fi
-        id: changes
-    outputs:
-      changed: ${{ steps.changes.env.CHANGED }}
-
   unit-tests:
     uses: canonical/operator-workflows/.github/workflows/test.yaml@main
-    needs: check-changes
-    if: needs.check-changes.outputs.changed == 'true'
     secrets: inherit
     with:
       self-hosted-runner: false
