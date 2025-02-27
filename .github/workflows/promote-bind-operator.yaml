@@ -1,4 +1,4 @@
-name: Promote charm
+name: Promote bind operator
 
 on:
   workflow_dispatch:

@@ -1,17 +1,11 @@
-name: Tests
+name: Charmed-dns-policy tests
 
 on:
   pull_request:
+    paths:
+      - './charmed-dns-policy/**'
 
 jobs:
-  unit-tests:
-    uses: canonical/operator-workflows/.github/workflows/test.yaml@main
-    secrets: inherit
-    with:
-      self-hosted-runner: false
-      self-hosted-runner-label: "edge"
-      working-directory: ./bind-operator
-
   django-tests:
     runs-on: ubuntu-latest
     services:
@@ -39,7 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd ./dns-policy-app/app
+          cd ./charmed-dns-policy/app
           python3 -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
           export $(xargs < ci/.test-env) && ./manage.py test
@@ -61,4 +55,4 @@ jobs:
 
       - name: Run Ruff
         run: |
-          ruff check dns-policy-app/app/
+          ruff check charmed-dns-policy/app/

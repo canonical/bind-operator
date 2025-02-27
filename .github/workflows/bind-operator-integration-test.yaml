@@ -1,7 +1,9 @@
-name: Integration tests
+name: Bind-operator integration tests
 
 on:
   pull_request:
+    paths:
+      - './bind-operator/**'
 
 jobs:
   integration-tests:
