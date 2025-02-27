@@ -1,0 +1,28 @@
+name: Publish charmed-dns-policy to edge
+
+on:
+  push:
+    branches:
+      - main
+      - track/*
+    paths:
+      - './charmed-dns-policy/**'
+
+jobs:
+  publish-to-edge-charmed-dns-policy:
+    name: Build snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v30.1.3
+    with:
+      path-to-snap-project-directory: ./charmed-dns-policy
+
+    name: Release snap
+    needs:
+      - build
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v30.1.3
+    with:
+      channel: latest/edge
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+    secrets:
+      snap-store-token: ${{ secrets.CHARMED_DNS_POLICY_EDGE_SNAPCRAFT_TOKEN }}
+    permissions:
+      contents: write  # Needed to create git tags
